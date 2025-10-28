@@ -11,7 +11,6 @@ wave3 <- wave3[-1,] #delete first row
 wave3 <- wave3[-1,] #delete second row
 rownames(wave3) <- NULL #set row numbering to start with 1
 
-
 wave3$RecipientLastName <- NULL #delete participant last name (already empty column)
 wave3$RecipientFirstName <- NULL #delete participant first name (already empty column)
 wave3$RecipientEmail <- NULL #delete participant mail (already empty column)
