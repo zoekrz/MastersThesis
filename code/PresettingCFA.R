@@ -23,22 +23,21 @@ rownames(wave3) <- NULL #set row numbering to start with 1
 #filter out rows where the Distribution channel is "preview" or the survey has not been finished
 wave3 <- wave3[wave3$DistributionChannel != "preview" &
                  wave3$Finished != FALSE, ]
-
-#filter out rows where participants already met quota or screened out is true
-wave3 <- wave3[!(wave3$Q_TerminateFlag %in% c("QuotaMet", "Screened")), ]
-
 #filter out rows which were before official start date
 cutoff <- as.POSIXct("2025-02-13 10:00:00")
 wave3 <- wave3[wave3$StartDate >= cutoff, ]
+
+#filter out people who didn't answer the consent form right, rename the column to "consent"
+wave3 <- wave3[wave3$consent_choice == "I have read and understood the study information.,I have had enough time to decide about my participation.,I participate in this study voluntarily.,I consent that my data be collected and used anonymously.,I understand that I can stop participating at any moment without any disadvantages.", ]
+names(wave3)[names(wave3) == "consent_choice"] <- "consent"
+
+#filter out rows where participants already met quota or screened out is true
+wave3 <- wave3[!(wave3$Q_TerminateFlag %in% c("QuotaMet", "Screened")), ]
 
 #store years of education as numeric,  NAs are introduced by coercion
 wave3$education_year <- as.numeric(wave3$education_year)
 
 #note for me: I left out the renaming of the columns wave3$X6_conjoint_plan1 etc., as I don't need them
-
-#filter out people who didn't answer the consent form right, rename the column to "consent"
-wave3 <- wave3[wave3$consent_choice == "I have read and understood the study information.,I have had enough time to decide about my participation.,I participate in this study voluntarily.,I consent that my data be collected and used anonymously.,I understand that I can stop participating at any moment without any disadvantages.", ]
-names(wave3)[names(wave3) == "consent_choice"] <- "consent"
 
 # filter out people who didn't answer trap questions right, delete trap questions columns
 wave3 <- wave3[wave3$trap_question1 == "Agree", ]
@@ -51,6 +50,17 @@ wave3$trap_question1 <- NULL
 wave3$trap_question2 <- NULL
 wave3$trap_question3 <- NULL
 
+#filter out straight liners
+wave3 <- wave3 %>%
+  rowwise() %>%
+  filter(n_distinct(c_across(c(
+    starts_with("justice_gen"),
+    starts_with("justice_tax"),
+    starts_with("justice_sub")
+  )
+  )) > 1) %>%
+  ungroup()
+
 #filter people which took longer than the 9.5th decile and shorter than the 0.5st decile (only needed in wave 1 as there were no attention ckecks)
 wave1$Duration..in.seconds. <- as.numeric(wave1$Duration..in.seconds.)
 lower_bound <- quantile(wave1$Duration..in.seconds., 0.05, na.rm = TRUE)
@@ -59,6 +69,15 @@ wave1 <- subset(wave1,
                 Duration..in.seconds. >= lower_bound &
                   Duration..in.seconds. <= upper_bound)
 ####before: 2230 ppl, after 2008 ppl: more than 200 less
+wave1 <- wave1 %>%
+  rowwise() %>%
+  filter(n_distinct(c_across(c(
+    starts_with("justice_gen"),
+    starts_with("justice_tax"),
+    starts_with("justice_sub")
+  )
+  )) > 1) %>%
+  ungroup()
 
 #transform duration in seconds to duration in minutes (also in wave1)
 wave1$duration_min <- wave1$Duration..in.seconds. / 60
@@ -307,7 +326,7 @@ wave1 <- wave1 %>%
     justice_sub_1 = recode(justice_sub_1, !!!justice_approval),
     justice_sub_2 = recode(justice_sub_2, !!!justice_approval),
     justice_sub_3 = recode(justice_sub_3, !!!justice_approval),
-    justice_sub_4 = recode(justice_sub_3, !!!justice_approval)
+    justice_sub_4 = recode(justice_sub_4, !!!justice_approval)
   )
 
 wave3 <- wave3 %>%
@@ -322,7 +341,7 @@ wave3 <- wave3 %>%
          justice_sub_1 = na_if(justice_sub_1, ""),
          justice_sub_2 = na_if(justice_sub_2, ""),
          justice_sub_3 = na_if(justice_sub_3, ""),
-         justice_sub_4 = na_if(justice_sub_3, "")
+         justice_sub_4 = na_if(justice_sub_4, "")
   )
 # merge open justice questions in wave3, add empty open justice question to wave 1
 wave3 <- wave3 %>%
@@ -492,7 +511,45 @@ combined_waves <- combined_waves %>%
 
 colSums(is.na(combined_waves)) # (3498 observations) NA's in political_position are very high (304) (all from wave3), in the other columns (like renting, justice_open_text and justice_open_set, the numbers are explained by the fact that columns were imputed in wave1)
 
+
+#clean combined wave: mutate string justice variables into numbers
+justice_numeric <- c(
+  "Strongly agree" = 6,
+  "Agree" = 5,              
+  "Somewhat agree" = 4,        
+  "Somewhat disagree" = 3,
+  "Disagree" = 2,        
+  "Strongly disagree" = 1
+)
+combined_waves <- combined_waves %>%
+  mutate(
+    justice_gen_1 = recode(justice_gen_1, !!!justice_numeric),
+    justice_gen_2 = recode(justice_gen_2, !!!justice_numeric),
+    justice_gen_3 = recode(justice_gen_3, !!!justice_numeric),
+    justice_gen_4 = recode(justice_gen_4, !!!justice_numeric),
+    justice_tax_1 = recode(justice_tax_1, !!!justice_numeric),
+    justice_tax_2 = recode(justice_tax_2, !!!justice_numeric),
+    justice_tax_3 = recode(justice_tax_3, !!!justice_numeric),
+    justice_tax_4 = recode(justice_tax_4, !!!justice_numeric),
+    justice_sub_1 = recode(justice_sub_1, !!!justice_numeric),
+    justice_sub_2 = recode(justice_sub_2, !!!justice_numeric),
+    justice_sub_3 = recode(justice_sub_3, !!!justice_numeric),
+    justice_sub_4 = recode(justice_sub_4, !!!justice_numeric)
+  )
+
+
+
+
+
+#create subsample
+########################
 #set  seed
 #sample(1:1000, 1) #first time I ran it:85
 set.seed(85)
 subset_combined <- combined_waves[sample(nrow(combined_waves), 300), ]
+write.csv2(subset_combined, "subset_combined.csv")
+
+
+
+
+
