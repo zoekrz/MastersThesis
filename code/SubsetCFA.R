@@ -5,11 +5,28 @@
 library(lavaan)
 library(semPlot)
 library(ggcorrplot)
+library(moments)
 
 options(scipen = 999)
 
-# scale the data
-#subset_com_scaled <- as.data.frame(scale(subset_combined[,c("justice_gen_1", "justice_gen_2", "justice_gen_3", "justice_gen_4", "justice_tax_1", "justice_tax_2", "justice_tax_3", "justice_tax_4", "justice_sub_1", "justice_sub_2", "justice_sub_3", "justice_sub_4")]))
+#check for skewness 
+#(ordinal data with enough categories (≥ 5), big datasets and non-skewed distributions can be treated as continious according to Rhemtulla et al.,2012)
+justice_cols <- c(
+  "justice_gen_1",
+  "justice_gen_2",
+  "justice_gen_3",
+  "justice_gen_4",
+  "justice_tax_1",
+  "justice_tax_2",
+  "justice_tax_3",
+  "justice_tax_4",
+  "justice_sub_1",
+  "justice_sub_2",
+  "justice_sub_3",
+  "justice_sub_4"
+)
+sapply(subset_combined[, justice_cols], skewness)
+# skewness between -1 and 1 indicates symmetrical distributions (source)
 
 ################################################################################
 # H1 to H4: four factor model
@@ -46,32 +63,27 @@ justice_sub_1 ~~ justice_sub_1
 justice_sub_2 ~~ justice_sub_2
 justice_sub_3 ~~ justice_sub_3
 justice_sub_4 ~~ justice_sub_4
-'
 
-# leave out latent context factors: #latent regressions context
-#gen =~ justice_gen_1 + justice_gen_2 + justice_gen_3 + justice_gen_4
-#tax =~ justice_tax_1 + justice_tax_2 + justice_tax_3 + justice_tax_4
-#sub =~ justice_sub_1 + justice_sub_2 + justice_sub_3 + justice_sub_4
+# measured intercepts
+justice_gen_1 ~ 1
+justice_gen_2 ~ 1
+justice_gen_3 ~ 1
+justice_gen_4 ~ 1
+justice_tax_1 ~ 1
+justice_tax_2 ~ 1
+justice_tax_3 ~ 1
+justice_tax_4 ~ 1
+justice_sub_1 ~ 1
+justice_sub_2 ~ 1
+justice_sub_3 ~ 1
+justice_sub_4 ~ 1
+
+'
 
 cfa1 <- lavaan(
   model1,
   data = subset_combined,
-  ordered = c(
-    "justice_gen_1",
-    "justice_gen_2",
-    "justice_gen_3",
-    "justice_gen_4",
-    "justice_tax_1",
-    "justice_tax_2",
-    "justice_tax_3",
-    "justice_tax_4",
-    "justice_sub_1",
-    "justice_sub_2",
-    "justice_sub_3",
-    "justice_sub_4"
-  ),
-  estimator = "WLSMV",
-  parameterization = "theta"
+  estimator = "MLR"
 )
 lavInspect(cfa1, "cov.lv") #some latent correlations are > 1, which is strange
 summary(cfa1, standardized = TRUE)
@@ -151,8 +163,6 @@ equal ~~ 1*equal
 suff ~~ 1*suff
 lim ~~ 1*lim
 
-#latent means are restricted to zero as data is standardised
-
 #estimate covariances between all latent factors
 util ~~ equal + suff + lim
 equal ~~ suff + lim
@@ -171,11 +181,23 @@ justice_sub_1 ~~ justice_sub_1
 justice_sub_2 ~~ justice_sub_2
 justice_sub_3 ~~ justice_sub_3
 justice_sub_4 ~~ justice_sub_4
-'
-cfa2 <- lavaan(model2, data = subset_com_scaled)
-summary(cfa2, standardized = TRUE)
 
-#this doesn't help
+# measured intercepts
+justice_gen_1 ~ 1
+justice_gen_2 ~ 1
+justice_gen_3 ~ 1
+justice_gen_4 ~ 1
+justice_tax_1 ~ 1
+justice_tax_2 ~ 1
+justice_tax_3 ~ 1
+justice_tax_4 ~ 1
+justice_sub_1 ~ 1
+justice_sub_2 ~ 1
+justice_sub_3 ~ 1
+justice_sub_4 ~ 1
+'
+cfa2 <- lavaan(model2, data = subset_combined, estimator = "MLR")
+summary(cfa2, standardized = TRUE)
 
 ################################################################################
 #add methods factors
@@ -221,6 +243,20 @@ justice_sub_1 ~~ justice_sub_1
 justice_sub_2 ~~ justice_sub_2
 justice_sub_3 ~~ justice_sub_3
 justice_sub_4 ~~ justice_sub_4
+
+# measured intercepts
+justice_gen_1 ~ 1
+justice_gen_2 ~ 1
+justice_gen_3 ~ 1
+justice_gen_4 ~ 1
+justice_tax_1 ~ 1
+justice_tax_2 ~ 1
+justice_tax_3 ~ 1
+justice_tax_4 ~ 1
+justice_sub_1 ~ 1
+justice_sub_2 ~ 1
+justice_sub_3 ~ 1
+justice_sub_4 ~ 1
 '
-cfa3 <- lavaan(model3, data = subset_com_scaled)
+cfa3 <- lavaan(model3, data = subset_combined, estimator = "MLR")
 lavInspect(cfa3, "cov.lv")

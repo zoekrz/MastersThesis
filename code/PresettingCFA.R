@@ -537,10 +537,6 @@ combined_waves <- combined_waves %>%
     justice_sub_4 = recode(justice_sub_4, !!!justice_numeric)
   )
 
-
-
-
-
 #create subsample
 ########################
 #set  seed
