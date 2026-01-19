@@ -7,7 +7,7 @@ library(dplyr)
 library(tidyr)
 
 #set working directory
-setwd("~/Documents/Uni/25HS/1_25MastersThesis/QuantData")
+setwd("~/Documents/Uni/26FS/1_25MastersThesis/QuantData")
 #load data
 wave1 <- read.csv("raw_conjoints_data.csv")
 wave3 <- read.csv("ccs_conjoint_CH_240225_1004.csv")
