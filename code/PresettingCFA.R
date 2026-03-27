@@ -509,7 +509,7 @@ combined_waves <- combined_waves %>%
 combined_waves <- combined_waves %>%
   relocate(id, .after = duration_min)
 
-colSums(is.na(combined_waves)) # (3498 observations) NA's in political_position are very high (304) (all from wave3), in the other columns (like renting, justice_open_text and justice_open_set, the numbers are explained by the fact that columns were imputed in wave1)
+colSums(is.na(combined_waves)) # (3371 observations) NA's in political_position are very high (304) (all from wave3), in the other columns (like renting, justice_open_text and justice_open_set, the numbers are explained by the fact that columns were imputed in wave1)
 
 
 #clean combined wave: mutate string justice variables into numbers
