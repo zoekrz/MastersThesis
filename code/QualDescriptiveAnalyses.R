@@ -3,7 +3,7 @@
 ########################################################################
 
 #load dataset
-read.csv("QualitativeSampleCharacteristics_260327.csv")
+dat <- read.csv("QualitativeSampleCharacteristics_260327.csv")
 
 #clean dataset
 
