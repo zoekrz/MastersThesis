@@ -15,3 +15,7 @@ dat$datetime <- dmy_hm(dat$RecordedDate)
 dat$RecordedDate <- NULL
 
 range(dat$datetime) #participants that were included in the dataset filled out the form between the 16th and 18th of December
+table(dat$age)
+table(dat$gender)
+table(dat$canton)
+table(dat$income)
