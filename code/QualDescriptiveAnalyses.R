@@ -8,7 +8,7 @@ library(tidyr)
 library(dplyr)
 
 #load dataset
-dat <- read.csv("QualitativeSampleCharacteristics_260327.csv")
+dat <- read.csv("QualitativeSampleCharacteristics_260409.csv")
 
 #clean dataset
 dat <- dat[-1, -c(1, 2, 3, 4, 5, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 24, 25, 26, 27, 28, 29, 30, 31)]
@@ -52,4 +52,45 @@ ggplot(data.frame(x = dat$income), aes(x = x)) +
   labs(title = "Income distribution", x = "Income category in CHF", y = "Frequency") +
   theme(axis.text = element_text(angle = 45, hjust = 1))
 
-table(dat$education)
+table(dat$education) #2 have no matura, 14 have a Berufsausbildung or matrua, 5 have a university degree
+table(dat$urbanness) #10 are from the city, 7 from countryside, 4 from agglomeration
+table(dat$renting) #18 are tenants, 2 are owners, 1 is in an unclear situation
+
+mean(dat$confidence.in.politicians)
+sd(dat$confidence.in.politicians)
+
+barplot(
+  table(dat$confidence.in.politicians),
+  ylab = "Frequency",
+  xlab = "10-point Likert scale",
+  main = "Confidence in politicians", 
+  xlim = c(0,15),
+  ylim = c(0,10)
+)
+
+barplot(
+  table(dat$confidence.in.parliament),
+  ylab = "Frequency",
+  xlab = "10-point Likert scale",
+  main = "Confidnce in parliament",
+  xlim = c(0, 15),
+  ylim = c(0,10)
+)
+
+barplot(
+  table(dat$confidence.in.political.parties),
+  ylab = "Frequency",
+  xlab = "10-point Likert scale",
+  main = "Confidnce in political parties",
+  xlim = c(0, 15),
+  ylim = c(0,10)
+)
+
+barplot(
+  table(dat$satisfaction.with.national.government),
+  ylab = "Frequency",
+  xlab = "10-point Likert scale",
+  main = "Satisfaction with national government",
+  xlim = c(0, 15),
+  ylim = c(0,10)
+)
