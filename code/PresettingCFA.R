@@ -376,9 +376,20 @@ wave1 <- wave1 %>%
 wave3 <- wave3 %>%
   mutate(wave = "wave3")
 
+#add empty trust_1 , trust_2, trust_3, and satisfaction_1 row into wave3
+wave3 <- wave3 %>%
+  mutate(trust_1 = NA)
+wave3 <- wave3 %>%
+  mutate(trust_2 = NA)
+wave3 <- wave3 %>%
+  mutate(trust_3 = NA)
+wave3 <- wave3 %>%
+  mutate(satisfaction_1 = NA)
+
 ##########################################################
 #delete columns that are not in the wave3 data set
-wave1 <- wave1 %>% select(-satisfaction_1, -household.size, -trust_1, -trust_2, -trust_3) #delete satisfaction, household size and trust variables, as they are not in wave3
+#wave1 <- wave1 %>% select(-satisfaction_1, -household.size, -trust_1, -trust_2, -trust_3) #delete satisfaction, household size and trust variables, as they are not in wave3
+wave1 <- wave1 %>% select(-household.size)
 wave1 <- wave1 %>%
   select(-contains("literacy")) #delete literacy variables
 wave1 <- wave1 %>%
@@ -445,6 +456,10 @@ wave3 <- wave3 %>%
     renting,
     income,
     political_position,
+    trust_1,
+    trust_2,
+    trust_3,
+    satisfaction_1,
     justice_gen_1,
     justice_gen_2,
     justice_gen_3,
@@ -481,6 +496,10 @@ wave1 <- wave1 %>%
     renting,
     income,
     political_position,
+    trust_1,
+    trust_2,
+    trust_3,
+    satisfaction_1,
     justice_gen_1,
     justice_gen_2,
     justice_gen_3,
