@@ -26,7 +26,7 @@ justice_cols <- c(
   "justice_sub_4"
 )
 sapply(subset_combined[, justice_cols], skewness)
-# skewness between -1 and 1 indicates symmetrical distributions (source)
+# skewness between -1 and 1 indicates symmetrical distributions (source) (distributions are symetrically)
 
 ################################################################################
 # H1 to H4: four factor model
