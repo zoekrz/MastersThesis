@@ -290,7 +290,7 @@ wave1 <- wave1 %>%
     )
   )
 
-#rename justice variables & make them comparables
+#rename justice variables & make them comparable
 names(wave1)[names(wave1) == "justice_general_1"] <- "justice_gen_1"
 names(wave1)[names(wave1) == "justice_general_2"] <- "justice_gen_2"
 names(wave1)[names(wave1) == "justice_general_3"] <- "justice_gen_3"
