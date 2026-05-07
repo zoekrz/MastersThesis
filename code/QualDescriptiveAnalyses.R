@@ -58,7 +58,6 @@ table(dat$renting) #18 are tenants, 2 are owners, 1 is in an unclear situation
 
 mean(dat$confidence.in.politicians)
 sd(dat$confidence.in.politicians)
-
 barplot(
   table(dat$confidence.in.politicians),
   ylab = "Frequency",
@@ -68,6 +67,8 @@ barplot(
   ylim = c(0,10)
 )
 
+mean(dat$confidence.in.parliament)
+sd(dat$confidence.in.parliament)
 barplot(
   table(dat$confidence.in.parliament),
   ylab = "Frequency",
@@ -77,6 +78,8 @@ barplot(
   ylim = c(0,10)
 )
 
+mean(dat$confidence.in.political.parties)
+sd(dat$confidence.in.political.parties)
 barplot(
   table(dat$confidence.in.political.parties),
   ylab = "Frequency",
@@ -94,3 +97,5 @@ barplot(
   xlim = c(0, 15),
   ylim = c(0,10)
 )
+
+table(dat$party.identification) #7 participants identified with SP, 5 didn't identify with any party, with SVP, FDP and Mitte each two, one person each for GLP, Would prefer not to comment and other
