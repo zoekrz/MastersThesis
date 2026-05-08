@@ -11,6 +11,39 @@ library(tidyverse)
 
 options(scipen = 999) #limit decimals
 
+# sample characteristics
+table(combined_waves$age) # 869,1484,1004
+prop.table(table(combined_waves$age))
+table(combined_waves$gender) # 1598, 1744, 15 
+prop.table(table(combined_waves$gender))
+table(combined_waves$language_region)
+prop.table(table(combined_waves$language_region))
+table(combined_waves$canton) #didn't add this into my table
+prop.table(table(combined_waves$canton))
+table(combined_waves$income)
+prop.table(table(combined_waves$income))
+table(combined_waves$education)
+prop.table(table(combined_waves$education))
+table(combined_waves$urbanness)
+prop.table(table(combined_waves$urbanness))
+table(combined_waves$renting)
+prop.table(table(combined_waves$renting))
+
+combined_waves$income <- factor(
+  combined_waves$income,
+  levels = c(
+    "Bottom 10%",
+    "Below average",
+    "Average",
+    "Above average",
+    "Top 10%",
+    "Prefer not to say"
+  )
+)
+ggplot(data.frame(x = combined_waves$income), aes(x = x)) +
+  geom_bar() +
+  labs(title = "Income distribution in quantitative dataset", x = "Income category in CHF", y = "Frequency") +
+  theme(axis.text = element_text(angle = 45, hjust = 1))
 
 #2. preprocessing: no imputation needed (see Rogers, 2024; Kline, 2023)
 colSums(is.na(combined_waves)) #practically no missing values in the justice questions
