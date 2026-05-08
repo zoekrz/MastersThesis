@@ -19,9 +19,13 @@ dat$RecordedDate <- NULL
 
 range(dat$datetime) #participants that were included in the dataset filled out the form between the 16th and 18th of December
 table(dat$age) #most participants were betwen 40 and 64 years old
+prop.table(table(dat$age))
 table(dat$gender) #15 particpants were men, 6 women
+prop.table(table(dat$gender))
 table(dat$canton) #most came from the canton Zurich, second most from canton Berne, no particpants from Basel!
+prop.table(table(dat$canton))
 table(dat$income) #most earn between 45'001 and 77'000 per year
+prop.table(table(dat$income))
 
 mean(dat$duration)
 sd(dat$duration)
@@ -53,8 +57,11 @@ ggplot(data.frame(x = dat$income), aes(x = x)) +
   theme(axis.text = element_text(angle = 45, hjust = 1))
 
 table(dat$education) #2 have no matura, 14 have a Berufsausbildung or matrua, 5 have a university degree
+prop.table(table(dat$education))
 table(dat$urbanness) #10 are from the city, 7 from countryside, 4 from agglomeration
+prop.table(table(dat$urbanness))
 table(dat$renting) #18 are tenants, 2 are owners, 1 is in an unclear situation
+prop.table(table(dat$renting))
 
 mean(dat$confidence.in.politicians)
 sd(dat$confidence.in.politicians)
@@ -99,3 +106,21 @@ barplot(
 )
 
 table(dat$party.identification) #7 participants identified with SP, 5 didn't identify with any party, with SVP, FDP and Mitte each two, one person each for GLP, Would prefer not to comment and other
+
+#make the same as in quant dataset
+#Grüne & SP into 1 # Grünliberale Partei = 4 # Mitte & FDP = 5 # SVP = 6
+
+dat <- dat %>%
+  mutate(
+    party.identification = recode(
+      party.identification,
+      "Sozialdemokratische Partei der Schweiz (SP)" = "1",
+      "Grünliberale Partei (GLP)" = "4",
+      "Die Mitte (ehemals (CVP/BDP)" = "5",
+      "Die Liberalen (FDP)" = "5",
+      "Schweizerische Volkspartei (SVP)" = "6",
+      "I don't identify with any party / non" = "other/none of them/prefer not to say",
+      "I would prefer not to comment"   = "other/none of them/prefer not to say",
+      "other" = "other/none of hem/prefer not to say"
+    ))
+unique(dat$party.identification)
