@@ -214,15 +214,16 @@ wave3 <- wave3 %>%
   )
 unique(wave3$education)
 unique(wave1$education)
-## urbanness merging into 3 categories
-names(wave3)[names(wave3) == "living_area"] <- "urbanness"
+## urbanness /residence merging into 3 categories
+names(wave3)[names(wave3) == "living_area"] <- "residence"
+names(wave1)[names(wave1) == "urbanness"] <- "residence"
 wave1 <- wave1 %>%
-  mutate(urbanness = recode(urbanness, "Stadt" = "City", "Land" = "Countryside"))
-unique(wave1$urbanness)
+  mutate(residence = recode(residence, "Stadt" = "City", "Land" = "Countryside"))
+unique(wave1$residence)
 wave3 <- wave3 %>%
-  mutate(urbanness = na_if(urbanness, ""),
-         urbanness = recode(
-           urbanness,
+  mutate(residence = na_if(residence, ""),
+         residence = recode(
+           residence,
            "Big city" = "City",
            "Medium-sized or small town" = "City",
            "Outer neighborhood or suburb of a large city" = "Agglomeration",
@@ -231,7 +232,7 @@ wave3 <- wave3 %>%
            "Other" = " other"
          )
   )
-unique(wave3$urbanness)
+unique(wave3$residence)
 
 ##income
 wave3quest$income #wave3: annual income
@@ -452,7 +453,7 @@ wave3 <- wave3 %>%
     canton,
     swiss_citizen,
     education,
-    urbanness,
+    residence,
     renting,
     income,
     political_position,
@@ -492,7 +493,7 @@ wave1 <- wave1 %>%
     canton,
     swiss_citizen,
     education,
-    urbanness,
+    residence,
     renting,
     income,
     political_position,
@@ -555,6 +556,16 @@ combined_waves <- combined_waves %>%
     justice_sub_3 = recode(justice_sub_3, !!!justice_numeric),
     justice_sub_4 = recode(justice_sub_4, !!!justice_numeric)
   )
+
+# make renting in english
+unique(wave1$renting)
+wave1 <- wave1 %>% 
+  mutate(renting = recode(
+    renting,
+    "Mieter:in" = "tenant",
+    "Besitzer:in" = "owner"
+  ))
+
 
 #create subsample
 ########################
