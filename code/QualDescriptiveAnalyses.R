@@ -8,6 +8,7 @@ library(tidyr)
 library(dplyr)
 
 #load dataset
+setwd("~/Documents/Uni/26FS/1_25MastersThesis/QualitativeInterview/ScreenerlisteKontakte")
 dat <- read.csv("QualitativeSampleCharacteristics_260409.csv")
 
 #clean dataset
