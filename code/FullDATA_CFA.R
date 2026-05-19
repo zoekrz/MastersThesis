@@ -81,6 +81,7 @@ which(vec_sd < 0.25) #no participant shows a sd < 0.25, so no participant is
 skewness(combined_waves[, justice_cols], na.rm = TRUE)
 # skewness between -1 and 1 indicates symmetrical distributions (source!) #here all good
 
+
 #check if some items show multicollinearity (vif)
 cor_ma_factors_comwaves <- cor(combined_waves[, c(
   "justice_gen_1",

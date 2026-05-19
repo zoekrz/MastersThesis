@@ -370,6 +370,14 @@ wave1 <- wave1 %>%
 #add empty renting column to wave3
 wave3 <- wave3 %>%
   mutate(renting = NA)
+# make renting in english
+unique(wave1$renting)
+wave1 <- wave1 %>% 
+  mutate(renting = recode(
+    renting,
+    "Mieter:in" = "tenant",
+    "Besitzer:in" = "owner"
+  ))
 
 # add column which identifies people from wave1 / wave3
 wave1 <- wave1 %>%
@@ -557,15 +565,14 @@ combined_waves <- combined_waves %>%
     justice_sub_4 = recode(justice_sub_4, !!!justice_numeric)
   )
 
-# make renting in english
-unique(wave1$renting)
-wave1 <- wave1 %>% 
-  mutate(renting = recode(
-    renting,
-    "Mieter:in" = "tenant",
-    "Besitzer:in" = "owner"
-  ))
 
+combined_waves <- combined_waves %>%
+  mutate(residence = recode(
+  residence,
+  "City" = "city",
+  "Agglomeration" = "agglomeration",
+  "Countryside" = "countryside",
+))
 
 #create subsample
 ########################
