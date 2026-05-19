@@ -566,6 +566,7 @@ combined_waves <- combined_waves %>%
   )
 
 
+#clean combined waves: without capitals
 combined_waves <- combined_waves %>%
   mutate(residence = recode(
   residence,
