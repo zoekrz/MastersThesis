@@ -8,8 +8,25 @@ library(ggcorrplot)
 library(moments)
 library(psych)
 library(tidyverse)
+library(semTools)
 
 options(scipen = 999) #limit decimals
+
+#add necessary object from subset CFA: 
+justice_cols <- c(
+  "justice_gen_1",
+  "justice_gen_2",
+  "justice_gen_3",
+  "justice_gen_4",
+  "justice_tax_1",
+  "justice_tax_2",
+  "justice_tax_3",
+  "justice_tax_4",
+  "justice_sub_1",
+  "justice_sub_2",
+  "justice_sub_3",
+  "justice_sub_4"
+)
 
 # sample characteristics
 table(combined_waves$age) # 869,1484,1004
@@ -42,7 +59,7 @@ combined_waves$income <- factor(
 )
 ggplot(data.frame(x = combined_waves$income), aes(x = x)) +
   geom_bar() +
-  labs(title = "Income distribution in quantitative dataset", x = "Income category in CHF", y = "Frequency") +
+  labs(title = "Income distribution in quantitative dataset", x = "Income category", y = "Frequency") +
   theme(axis.text = element_text(angle = 45, hjust = 1))
 
 #2. preprocessing: no imputation needed (see Rogers, 2024; Kline, 2023)
@@ -55,32 +72,19 @@ combined_waves <- combined_waves[complete.cases(combined_waves[, justice_cols]),
 3371 - 3357 # 14 cases were deleted
 
 #2. preprocessing: examine standard deviations that are < .25
-justice_cols <- c(
-  "justice_gen_1",
-  "justice_gen_2",
-  "justice_gen_3",
-  "justice_gen_4",
-  "justice_tax_1",
-  "justice_tax_2",
-  "justice_tax_3",
-  "justice_tax_4",
-  "justice_sub_1",
-  "justice_sub_2",
-  "justice_sub_3",
-  "justice_sub_4"
-)
 vec_sd <- apply(
   combined_waves[, justice_cols], 1, sd, na.rm = TRUE
 )
 which(vec_sd < 0.25) #no participant shows a sd < 0.25, so no participant is 
 #excluded due to a lack of variability (Collier, 2020, p.18)
 
-#check if data is normally distributed, as ordinal data with enough categories
+#check if data is (univariate) normally distributed, as ordinal data with enough categories
 # (≥ 5), big datasets and non-skewed distributions
 # can be treated as continious according to Rhemtulla et al.,2012)
 skewness(combined_waves[, justice_cols], na.rm = TRUE)
-# skewness between -1 and 1 indicates symmetrical distributions (source!) #here all good
-
+describe(combined_waves[, justice_cols], na.rm = TRUE)
+# skewness between -1 and 1 indicates symmetrical distributions --> Curran et al. (1996) even say, it is no problem if there is skewness <2 and kurtosis <7. Both is the case here.
+# --> here all good, i can use MLR
 
 #check if some items show multicollinearity (vif)
 cor_ma_factors_comwaves <- cor(combined_waves[, c(
@@ -113,17 +117,29 @@ c_suff <- c("justice_gen_3",
 c_limit <- c("justice_gen_4",
              "justice_tax_4",
              "justice_sub_4")
-
-alpha_util <- alpha(combined_waves[,c_util])
-alpha_equal <- alpha(combined_waves[,c_equal])
-alpha_suff <- alpha(combined_waves[,c_suff])
-alpha_limit <- alpha(combined_waves[, c_limit])
+c_dis_sen <- c("justice_gen_2",
+               "justice_tax_2",
+               "justice_sub_2",
+               "justice_gen_3",
+               "justice_tax_3",
+               "justice_sub_3",
+               "justice_gen_4",
+               "justice_tax_4",
+               "justice_sub_4")
+alpha_util <- psych::alpha(combined_waves[,c_util])
+alpha_equal <- psych::alpha(combined_waves[,c_equal])
+alpha_suff <- psych::alpha(combined_waves[,c_suff])
+alpha_limit <- psych::alpha(combined_waves[, c_limit])
+alpha_dis_sen <- psych::alpha(combined_waves[, c_dis_sen])
 print(alpha_util) # alpha = 0.37
 print(alpha_equal) # alpha = 0.56
 print(alpha_suff) # alpha = 0.53
 print(alpha_limit) # alpha = 0.56
+print(alpha_dis_sen) # alpha = 0.81uni
 #all alphas are rather low; normal threshold is considered to be 0.7 (source)
-#not so high enough internal consistency; I will use omega on the factor model to see, where it may lie
+#not so high enough internal consistency; I will use omega on the factor model to see, where it may lie (?)
+# note: I get really similar results when running compRelSEM(cfa1) (Model that has the H1 to H4 structure) (omegas)
+
 
 ################################################################################
 # H1 to H4: four factor model
@@ -228,7 +244,7 @@ fitMeasures(cfa1, "rmsea") #rmsea of 0.147 indicating bad fit
 modindices(cfa1) #checking modification indices; they indicate I should free the variances of equal and suff factors
 #this I cannot do as then I have an uneridentifies model
 #next they indicate I should add intercepts for the latent factors; as far as I know I can do so but then interpretation gets more difficult
-# further, they say, that the utilitarian factor should load onto all equal outcomes. Thsi does not make sense from theoretical perspective, 
+# further, they say, that the utilitarian factor should load onto all equal outcomes. This does not make sense from a theoretical perspective, 
 # but indicates that there is something wrong with the utilitarian factor; I consider removing it from the model.
 # but first I check for sources of that the covariance is not positive-definite
 
@@ -304,7 +320,7 @@ cfa2 <- lavaan(model2, data = combined_waves, estimator = "MLR") #I still get th
 summary(cfa2, standardized = TRUE)
 
 ################################################################################
-#add methods factors (for each context) --> several context factors because of (SOURCE )
+#add methods factors (for each context) --> several context factors because of (SOURCE)
 # not hypothesised!!
 
 model3 <- '
@@ -373,8 +389,38 @@ print(fitMeasures(cfa3, "tli")) # TLI = .943 --> is bigger than .90, so there is
 print(fitMeasures(cfa3, "cfi")) # CFI = .969 --> is bigger than .95, so indicates good fit
 print(fitMeasures(cfa3, "srmr")) # SRMR = 0.041 --> is smaller than .05, indicating good fit
 semPaths(cfa3, whatLabels = "stand", layout = "tree", intercepts = FALSE) #visualisation
+?semPaths
+
+######### with claude help #########
+p <- semPaths(cfa3, whatLabels = "stand", intercepts = FALSE, DoNotPlot = TRUE)
+
+# Define node groups
+justice_nodes <- which(p$graphAttributes$Nodes$names %in% c("utl", "eql", "sff", "lim"))
+context_nodes <- which(p$graphAttributes$Nodes$names %in% c("gen", "tax", "sub"))
+obs_nodes     <- setdiff(1:19, c(justice_nodes, context_nodes))
+
+# Assign y positions (3 levels)
+p$layout[justice_nodes, 2] <-  1    # top
+p$layout[obs_nodes, 2]     <-  0    # middle
+p$layout[context_nodes, 2] <- -1    # bottom
+p$layout[context_nodes[2], 2] <- -1.2  # tax even lower
+# Assign x positions (spread evenly within each level)
+p$layout[justice_nodes, 1] <- seq(-0.6,  0.6, length.out = length(justice_nodes))
+p$layout[obs_nodes, 1]     <- seq(-1,    1,   length.out = length(obs_nodes))
+p$layout[context_nodes, 1] <- seq(-0.4,  0.4, length.out = length(context_nodes))
+
+plot(p)
+
+
+
+
+###########################################################
+
+
 modindices(cfa3)
 ?modindices
+
+
 ###################################################################################################
 # H5 to H6: participants only distinguish between distribution insensitive and distribution sensitive
 # first without the method factors: (it indicates bad fit)
@@ -482,10 +528,10 @@ justice_sub_4 ~ 1
 cfa5 <- lavaan(model5, data = combined_waves, estimator = "MLR")
 fitMeasures(cfa5)
 print(fitMeasures(cfa5, c("chisq", "df", "pvalue"))) #significant
-print(fitMeasures(cfa5, c("rmsea",  "rmsea.ci.lower", "rmsea.ci.upper"))) # good fit to mediocre
-print(fitMeasures(cfa5, "tli")) #bad fit becaus it's < .9
+print(fitMeasures(cfa5, c("rmsea",  "rmsea.ci.lower", "rmsea.ci.upper"))) # acceptable fit to mediocre
+print(fitMeasures(cfa5, "tli")) #bad fit because it's < .9
 print(fitMeasures(cfa5, "cfi")) # CFI = .936 --> acceptable fit
-print(fitMeasures(cfa5, "srmr")) # SRMR = .037
+print(fitMeasures(cfa5, "srmr")) # SRMR = .037 -> good fit
 
 # as a next step, I test the two models (cfa3 and cfa5) against each other and see which model is better fitting the data
 #the models are not nested, so I test them with AIC and BIC
@@ -493,3 +539,10 @@ AIC(cfa3)
 BIC(cfa3)
 AIC(cfa5)
 BIC(cfa5) # model 3 shows better fit: AIC = 124203 vs. 124546 / BIC = 124533 vs. 124845
+AIC(cfa3) - AIC(cfa5)
+BIC(cfa3) - BIC(cfa5)
+
+
+######
+
+
