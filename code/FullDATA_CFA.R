@@ -12,6 +12,9 @@ library(semTools)
 
 options(scipen = 999) #limit decimals
 
+#here one could load the publicly available dataset "combined_waves.csv"
+#read.csv("combined_waves.csv")
+
 #add necessary object from subset CFA: 
 justice_cols <- c(
   "justice_gen_1",
@@ -400,15 +403,16 @@ context_nodes <- which(p$graphAttributes$Nodes$names %in% c("gen", "tax", "sub")
 obs_nodes     <- setdiff(1:19, c(justice_nodes, context_nodes))
 
 # Assign y positions (3 levels)
-p$layout[justice_nodes, 2] <-  1    # top
+p$layout[justice_nodes, 2] <-  0.8    # top
 p$layout[obs_nodes, 2]     <-  0    # middle
-p$layout[context_nodes, 2] <- -1    # bottom
-p$layout[context_nodes[2], 2] <- -1.2  # tax even lower
+p$layout[context_nodes, 2] <- -0.8    # bottom
+p$layout[context_nodes[2], 2] <- -1  # tax even lower
 # Assign x positions (spread evenly within each level)
-p$layout[justice_nodes, 1] <- seq(-0.6,  0.6, length.out = length(justice_nodes))
-p$layout[obs_nodes, 1]     <- seq(-1,    1,   length.out = length(obs_nodes))
+p$layout[justice_nodes, 1] <- seq(-0.7,  0.7, length.out = length(justice_nodes))
+p$layout[obs_nodes, 1]     <- seq(-1.25,    1.25,   length.out = length(obs_nodes))
 p$layout[context_nodes, 1] <- seq(-0.4,  0.4, length.out = length(context_nodes))
 
+p$graphAttributes$Nodes$loopRotation[context_nodes] <- pi
 plot(p)
 
 
@@ -543,6 +547,43 @@ AIC(cfa3) - AIC(cfa5)
 BIC(cfa3) - BIC(cfa5)
 
 
-######
+##########################
+#Exploratory analyses
+model6 <- '
+#latent regressions (justice)
+lim =~ justice_sub_4 + justice_tax_4
+suff =~ justice_sub_3 + justice_tax_3
+equal =~ justice_sub_2 + justice_tax_2
+util =~ justice_sub_1 + justice_tax_1
 
+#latent regressions (contexts)
+sub =~ justice_sub_1 + justice_sub_2 + justice_sub_3 + justice_sub_4
+tax =~ justice_tax_1 + justice_tax_2 + justice_tax_3 + justice_tax_4 
+
+#set latent variances to 1 for identification
+util ~~ 1*util
+equal ~~ 1*equal
+suff ~~ 1*suff
+lim ~~ 1*lim
+sub ~~ 1*sub
+tax ~~ 1*tax
+
+#estimate covariances between all latent factors
+util ~~ equal + suff + lim
+equal ~~ suff + lim
+suff ~~ lim
+
+#estimate residual variances
+justice_sub_1 ~~ justice_sub_1
+justice_sub_2 ~~ justice_sub_2
+justice_sub_3 ~~ justice_sub_3
+justice_sub_4 ~~ justice_sub_4
+justice_tax_1 ~~ justice_tax_1
+justice_tax_2 ~~ justice_tax_2
+justice_tax_3 ~~ justice_tax_3
+justice_tax_4 ~~ justice_tax_4
+'
+cfa6 <- lavaan(model6, data = combined_waves, estimator = "MLR") 
+summary(cfa6)
+fitMeasures(cfa6)
 

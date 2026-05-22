@@ -583,7 +583,8 @@ set.seed(85)
 subset_combined <- combined_waves[sample(nrow(combined_waves), 300), ]
 write.csv2(subset_combined, "subset_combined.csv")
 
-
+#print dataset for publication
+write.csv2(combined_waves, "combined_waves.csv")
 
 
 
