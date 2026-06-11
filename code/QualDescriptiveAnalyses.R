@@ -64,10 +64,12 @@ dat <- dat %>%
                          "Über 96'000 CHF" = "Top 10%",
                          "Möchte ich nicht sagen"= "Prefer not to say"))
 
-ggplot(data.frame(x = dat$income), aes(x = x)) +
-  geom_bar() +
-  labs(title = "Income distribution", x = "Income category in CHF", y = "Frequency") +
-  theme(axis.text = element_text(angle = 45, hjust = 1))
+ggplot(data.frame(x = dat$income), aes(x = x, y = after_stat(count / sum(count)))) +
+  geom_bar(fill = "grey") +
+  labs(title = "Income distribution in qualitative dataset", x = "Income category", y = "Percentage (%)") +
+  theme(axis.text = element_text(angle = 45, hjust = 1)) +
+  theme_classic()
+  
 
 table(dat$education) #2 have no matura, 14 have a Berufsausbildung or matrua, 5 have a university degree
 prop.table(table(dat$education))
