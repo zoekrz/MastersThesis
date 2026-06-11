@@ -9,6 +9,7 @@ library(moments)
 library(psych)
 library(tidyverse)
 library(semTools)
+library(DescTools)
 
 options(scipen = 999) #limit decimals
 
@@ -32,6 +33,7 @@ justice_cols <- c(
 )
 
 # sample characteristics
+## age
 table(combined_waves$age) # 869,1484,1004
 prop.table(table(combined_waves$age))
 table(combined_waves$gender) # 1598, 1744, 15 
@@ -60,10 +62,77 @@ combined_waves$income <- factor(
     "Prefer not to say"
   )
 )
-ggplot(data.frame(x = combined_waves$income), aes(x = x)) +
-  geom_bar() +
-  labs(title = "Income distribution in quantitative dataset", x = "Income category", y = "Frequency") +
-  theme(axis.text = element_text(angle = 45, hjust = 1))
+ggplot(data.frame(x = combined_waves$income), aes(x = x, y = after_stat(count / sum(count)))) +
+  geom_bar(fill = "grey") +
+  labs(title = "Income distribution in quantitative dataset", x = "Income category", y = "Percentage (%)") +
+  theme(axis.text = element_text(angle = 45, hjust = 1)) +
+  theme_classic()
+
+# population characteristics from BFS: chi squared tests
+## from dataset cc-d-01.02.03.02 (Ständige Wohnbevölkerung nach Staatsangehörigkeitskategorie, Alter und Kanton, 1. Quartal 2026)
+counts_age_popul <- c("18-39"= 2463, "40-64" = 3085, "65 or older" = 1740) # in 1000
+sum_counts_age_popul <- sum(counts_age_popul) # 7288
+prop_age_popul <- counts_age_popul/sum_counts_age_popul #percentages reported in thesis
+quant_counts_age <- table(combined_waves$age)
+chi_age <- chisq.test(quant_counts_age, p = prop_age_popul) #statistical significant
+cramersv_age <- sqrt(chi_age$statistic / (sum(quant_counts_age) * (length(quant_counts_age) -1)))
+print(cramersv_age) #low Cramér's V, means they are well aligning --> here low (small effect) (Khalilzadeh & Tasci, 2017)
+
+counts_gender_popul <- c("male" = 3732, "female" = 3818) # in 1000
+sum_counts_gender_popul <- sum(counts_gender_popul)
+prop_gender_popul <- counts_gender_popul/sum_counts_gender_popul # percentages reported in thesis
+filtered_combined_waves <- combined_waves[combined_waves$gender == "male" | combined_waves$gender == "female", ]
+quant_counts_gender <- table(filtered_combined_waves$gender) 
+chi_gender <- chisq.test(quant_counts_gender, p = prop_gender_popul) # not significant
+cramersv_gender <- sqrt(chi_gender$statistic / (sum(quant_counts_gender) * (length(quant_counts_gender) -1))) #very low
+
+## from publication Müller & Roth, 2022 (not language region but people that speak this language... used this as a proxy)
+prop_language_reg_popul <- c("German-speaking region" = 62.3, "Italian-speaking region" = 8.0, "French-speaking region"= 22.8, "Romansh-speaking region" = 0.5)/100 #like this 6.4 missing values #problem here is it's not summing up to 1 as probability, therefore I add proportionally around 6% of each
+prop_language_reg_popul <- c("German-speaking region" = 66.4, "Italian-speaking region" = 8.6, "French-speaking region"= 24.4, "Romansh-speaking region" = 0.6)/100
+filtered_com_wave1 <- combined_waves %>% 
+  filter(wave == "wave1")
+quant_counts_language_reg <- table(filtered_com_wave1$language_region)
+chi_language_reg <- chisq.test(quant_counts_language_reg, p = prop_language_reg_popul)
+cramersv_language_reg <- sqrt(chi_language_reg$statistic /(sum(quant_counts_language_reg)*(length(quant_counts_language_reg)-1)))
+print(cramersv_language_reg) #impossibly large, therefore, I cannot report this probably the language regions are not really representative, because I took both samples into the calculation
+
+# income no available data. but the two samples show a very different distribution
+filtered_com_wave3 <- combined_waves %>%
+  filter(wave == "wave3")
+prop.table(table(filtered_com_wave1$income))
+prop.table(table(filtered_com_wave3$income))
+
+## from Bildungsstand der Bevölkerung – Daten des Indikators
+prop_education_popul <- c("No high school diploma"= 13.9, "High school or vocational training" = 39.9, "Degree from a university or university of applied sciences"= 46.2)/100
+filtered_combined_waves2 <- combined_waves[combined_waves$education == "No high school diploma" | combined_waves$education == "High school or vocational training" | combined_waves$education == "Degree from a university or university of applied sciences",]
+quant_counts_education <- table(filtered_combined_waves2$education)
+chi_education <- chisq.test(quant_counts_education, p = prop_education_popul)
+cramersv_education <- sqrt(chi_education$statistic / (sum(quant_counts_education) * (length(quant_counts_education)-1)))
+
+## from https://www.aboutswitzerland.eda.admin.ch/de/bevoelkerung
+prop_residence_popul <- c("city" = 74, "countryside" = 26)/100 #only distinguished into city and countryside, will take agglomeration together with countryside
+filtered_combined_waves3 <- combined_waves %>% 
+  filter(!is.na(residence)) %>%
+  filter(residence != " other") %>%
+  mutate(residence = recode(
+    residence,
+    "city" = "city",
+    "agglomeration" = "city",
+    "countryside" = "countryside"
+  ))
+quant_counts_residence <- table(filtered_combined_waves3$residence)
+chi_residence <- chisq.test(quant_counts_residence, p = prop_residence_popul)
+cramersv_residence <- sqrt(chi_residence$statistic / (sum(quant_counts_residence)* (length(quant_counts_residence)-1)))
+
+## from https://www.bfs.admin.ch/asset/de/36396463
+prop_renting_popul <- c("tenant" = 61.1, "owner" = 35.7)/100 #same problem again; not adding up to 1 --> around 3 percent each added
+prop_renting_popul <- c("tenant" = 63.1, "owner" = 36.9)/100
+filtered_combined_waves4 <- combined_waves %>% 
+  filter(wave == "wave1")
+quant_counts_renting <- table(filtered_combined_waves4$renting)
+chi_renting <- chisq.test(quant_counts_renting, p = prop_renting_popul)
+cramersv_renting <- sqrt(chi_renting$statistic / (sum(quant_counts_renting)* (length(quant_counts_renting)-1)))
+
 
 #2. preprocessing: no imputation needed (see Rogers, 2024; Kline, 2023)
 colSums(is.na(combined_waves)) #practically no missing values in the justice questions
