@@ -575,6 +575,13 @@ combined_waves <- combined_waves %>%
   "Countryside" = "countryside",
 ))
 
+combined_waves <- combined_waves %>%
+  mutate(gender = recode(
+    gender,
+    "Male" = "male",
+    "Female" = "female",
+    "Non-binary / third gender" = "non-binary / third gender",
+  ))
 #create subsample
 ########################
 #set  seed
