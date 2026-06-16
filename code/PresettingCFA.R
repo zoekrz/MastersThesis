@@ -69,7 +69,7 @@ wave1 <- subset(wave1,
                 Duration..in.seconds. >= lower_bound &
                   Duration..in.seconds. <= upper_bound)
 ####before: 2230 ppl, after 2008 ppl: more than 200 less
-wave1 <- wave1 %>%
+wave1 <- wave1 %>% #filter out straight liners
   rowwise() %>%
   filter(n_distinct(c_across(c(
     starts_with("justice_gen"),
@@ -102,23 +102,23 @@ wave3$LocationLongitude <- NULL #delete location as it is not in wave 1
 unique(wave1$gender)
 unique(wave3$gender)
 wave1 <- wave1 %>% 
-  mutate(gender = recode(gender,
-                         "Männlich"="Male", 
-                         "Weiblich" = "Female",  
-                         "Nicht-binär" = "Non-binary / third gender"
+  mutate(gender = dplyr::recode(gender,
+                         "Männlich"="male", 
+                         "Weiblich" = "female",  
+                         "Nicht-binär" = "non-binary / third gender"
   ))
 
 ##age
 unique(wave1$age)
 unique(wave3$age)
 wave1 <- wave1 %>% 
-  mutate(age = recode(age, 
+  mutate(age = dplyr::recode(age, 
                       "18-39 Jahre" = "18-39",
                       "40-64 Jahre" = "40-64",
                       "65-79 Jahre" = "65 or older",     
                       "80 Jahre oder älter" = "65 or older"))
 wave3 <- wave3 %>%
-  mutate(age = recode(age, 
+  mutate(age = dplyr::recode(age, 
                       "18-24"  = "18-39",
                       "25-34"  = "18-39",
                       "35-44"  = "40-64",
@@ -132,7 +132,7 @@ unique(wave3$language_region) #check values wave3
 unique(wave1$language_region) #check values wave1
 wave1 <- wave1 %>%
   mutate(
-    language_region = recode(
+    language_region = dplyr::recode(
       language_region,
       "Deutschsprachige Schweiz" = "German-speaking region",
       "Italienischsprachige Schweiz" = "Italian-speaking region",
@@ -148,7 +148,7 @@ unique(wave1$canton)
 wave1 <- wave1 %>%
   mutate(
     canton = na_if(canton, ""),
-    canton = recode(
+    canton = dplyr::recode(
       canton,
       "Basel-Landschaft" = "Basel-Landschaft (BL)",
       "Glarus"   = "Glarus (GL)",
@@ -182,7 +182,7 @@ wave1 <- wave1 %>%
 names(wave1)[names(wave1) == "citizen"] <- "swiss_citizen"
 wave1 <- wave1 %>%
   mutate(swiss_citizen = na_if(swiss_citizen, ""),
-         swiss_citizen = recode(swiss_citizen, "Ja" = "Yes", "Nein" = "No"))
+         swiss_citizen = dplyr::recode(swiss_citizen, "Ja" = "Yes", "Nein" = "No"))
 unique(wave1$swiss_citizen)
 wave3 <- wave3 %>%
   mutate(swiss_citizen = na_if(swiss_citizen, ""))
@@ -194,7 +194,7 @@ unique(wave1$education)
 unique(wave3$education)
 wave1 <- wave1 %>%
   mutate(
-    education = recode(
+    education = dplyr::recode(
       education,
       "Abschluss einer Fachhochschule oder Universität" = "Degree from a university or university of applied sciences",
       "Matura oder Berufsausbildung"  = "High school or vocational training",
@@ -203,7 +203,7 @@ wave1 <- wave1 %>%
   )
 wave3 <- wave3 %>%
   mutate(education = na_if(education, ""),
-         education = recode(
+         education = dplyr::recode(
            education,
            "Doctoral or professional degree (e.g., PhD, MD, JD)" = "Degree from a university or university of applied sciences",
            "Master" = "Degree from a university or university of applied sciences",
@@ -218,11 +218,11 @@ unique(wave1$education)
 names(wave3)[names(wave3) == "living_area"] <- "residence"
 names(wave1)[names(wave1) == "urbanness"] <- "residence"
 wave1 <- wave1 %>%
-  mutate(residence = recode(residence, "Stadt" = "City", "Land" = "Countryside"))
+  mutate(residence = dplyr::recode(residence, "Stadt" = "City", "Land" = "Countryside"))
 unique(wave1$residence)
 wave3 <- wave3 %>%
   mutate(residence = na_if(residence, ""),
-         residence = recode(
+         residence = dplyr::recode(
            residence,
            "Big city" = "City",
            "Medium-sized or small town" = "City",
@@ -240,7 +240,7 @@ unique(wave3$income) #annual income per person
 unique(wave1$income) #per household?
 wave1 <- wave1 %>%
   mutate(
-    income = recode(
+    income = dplyr::recode(
       income,
       "Über 250,000" = "Top 10%",
       "CHF 150,001 – CHF 250,000" = "Above average",
@@ -252,7 +252,7 @@ wave1 <- wave1 %>%
   )
 wave3 <- wave3 %>%
   mutate(income = na_if(income, ""),
-         income = recode(
+         income = dplyr::recode(
            income,
            "Above CHF 96,000" = "Top 10%",
            "CHF 77,001 – CHF 96,000" = "Above average",
@@ -277,7 +277,7 @@ wave3quest$political_position_1 #left to right scale What is right and what is l
 wave1 <- wave1 %>%
   mutate(
     political_position = na_if(political_position, ""),
-    political_position = recode(
+    political_position = dplyr::recode(
       political_position,
       "Grüne Partei der Schweiz (GPS)" = "1",
       "Sozialdemokratische Partei der Schweiz (SP)" = "1",
@@ -316,18 +316,18 @@ justice_approval <- c(
 
 wave1 <- wave1 %>%
   mutate(
-    justice_gen_1 = recode(justice_gen_1, !!!justice_approval),
-    justice_gen_2 = recode(justice_gen_2, !!!justice_approval),
-    justice_gen_3 = recode(justice_gen_3, !!!justice_approval),
-    justice_gen_4 = recode(justice_gen_4, !!!justice_approval),
-    justice_tax_1 = recode(justice_tax_1, !!!justice_approval),
-    justice_tax_2 = recode(justice_tax_2, !!!justice_approval),
-    justice_tax_3 = recode(justice_tax_3, !!!justice_approval),
-    justice_tax_4 = recode(justice_tax_4, !!!justice_approval),
-    justice_sub_1 = recode(justice_sub_1, !!!justice_approval),
-    justice_sub_2 = recode(justice_sub_2, !!!justice_approval),
-    justice_sub_3 = recode(justice_sub_3, !!!justice_approval),
-    justice_sub_4 = recode(justice_sub_4, !!!justice_approval)
+    justice_gen_1 = dplyr::recode(justice_gen_1, !!!justice_approval),
+    justice_gen_2 = dplyr::recode(justice_gen_2, !!!justice_approval),
+    justice_gen_3 = dplyr::recode(justice_gen_3, !!!justice_approval),
+    justice_gen_4 = dplyr::recode(justice_gen_4, !!!justice_approval),
+    justice_tax_1 = dplyr::recode(justice_tax_1, !!!justice_approval),
+    justice_tax_2 = dplyr::recode(justice_tax_2, !!!justice_approval),
+    justice_tax_3 = dplyr::recode(justice_tax_3, !!!justice_approval),
+    justice_tax_4 = dplyr::recode(justice_tax_4, !!!justice_approval),
+    justice_sub_1 = dplyr::recode(justice_sub_1, !!!justice_approval),
+    justice_sub_2 = dplyr::recode(justice_sub_2, !!!justice_approval),
+    justice_sub_3 = dplyr::recode(justice_sub_3, !!!justice_approval),
+    justice_sub_4 = dplyr::recode(justice_sub_4, !!!justice_approval)
   )
 
 wave3 <- wave3 %>%
@@ -373,7 +373,7 @@ wave3 <- wave3 %>%
 # make renting in english
 unique(wave1$renting)
 wave1 <- wave1 %>% 
-  mutate(renting = recode(
+  mutate(renting = dplyr::recode(
     renting,
     "Mieter:in" = "tenant",
     "Besitzer:in" = "owner"
@@ -551,24 +551,24 @@ justice_numeric <- c(
 )
 combined_waves <- combined_waves %>%
   mutate(
-    justice_gen_1 = recode(justice_gen_1, !!!justice_numeric),
-    justice_gen_2 = recode(justice_gen_2, !!!justice_numeric),
-    justice_gen_3 = recode(justice_gen_3, !!!justice_numeric),
-    justice_gen_4 = recode(justice_gen_4, !!!justice_numeric),
-    justice_tax_1 = recode(justice_tax_1, !!!justice_numeric),
-    justice_tax_2 = recode(justice_tax_2, !!!justice_numeric),
-    justice_tax_3 = recode(justice_tax_3, !!!justice_numeric),
-    justice_tax_4 = recode(justice_tax_4, !!!justice_numeric),
-    justice_sub_1 = recode(justice_sub_1, !!!justice_numeric),
-    justice_sub_2 = recode(justice_sub_2, !!!justice_numeric),
-    justice_sub_3 = recode(justice_sub_3, !!!justice_numeric),
-    justice_sub_4 = recode(justice_sub_4, !!!justice_numeric)
+    justice_gen_1 = dplyr::recode(justice_gen_1, !!!justice_numeric),
+    justice_gen_2 = dplyr::recode(justice_gen_2, !!!justice_numeric),
+    justice_gen_3 = dplyr::recode(justice_gen_3, !!!justice_numeric),
+    justice_gen_4 = dplyr::recode(justice_gen_4, !!!justice_numeric),
+    justice_tax_1 = dplyr::recode(justice_tax_1, !!!justice_numeric),
+    justice_tax_2 = dplyr::recode(justice_tax_2, !!!justice_numeric),
+    justice_tax_3 = dplyr::recode(justice_tax_3, !!!justice_numeric),
+    justice_tax_4 = dplyr::recode(justice_tax_4, !!!justice_numeric),
+    justice_sub_1 = dplyr::recode(justice_sub_1, !!!justice_numeric),
+    justice_sub_2 = dplyr::recode(justice_sub_2, !!!justice_numeric),
+    justice_sub_3 = dplyr::recode(justice_sub_3, !!!justice_numeric),
+    justice_sub_4 = dplyr::recode(justice_sub_4, !!!justice_numeric)
   )
 
 
 #clean combined waves: without capitals
 combined_waves <- combined_waves %>%
-  mutate(residence = recode(
+  mutate(residence = dplyr::recode(
   residence,
   "City" = "city",
   "Agglomeration" = "agglomeration",
@@ -576,7 +576,7 @@ combined_waves <- combined_waves %>%
 ))
 
 combined_waves <- combined_waves %>%
-  mutate(gender = recode(
+  mutate(gender = dplyr::recode(
     gender,
     "Male" = "male",
     "Female" = "female",
