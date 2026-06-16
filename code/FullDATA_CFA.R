@@ -10,6 +10,11 @@ library(psych)
 library(tidyverse)
 library(semTools)
 library(DescTools)
+library(car)
+library(dplyr)
+library(robustbase)
+library(performance)
+library(modeest)
 
 options(scipen = 999) #limit decimals
 
@@ -114,7 +119,7 @@ prop_residence_popul <- c("city" = 74, "countryside" = 26)/100 #only distinguish
 filtered_combined_waves3 <- combined_waves %>% 
   filter(!is.na(residence)) %>%
   filter(residence != " other") %>%
-  mutate(residence = recode(
+  mutate(residence = dplyr::recode(
     residence,
     "city" = "city",
     "agglomeration" = "city",
@@ -149,11 +154,13 @@ vec_sd <- apply(
 )
 which(vec_sd < 0.25) #no participant shows a sd < 0.25, so no participant is 
 #excluded due to a lack of variability (Collier, 2020, p.18)
+range(vec_sd) 
+
 
 #check if data is (univariate) normally distributed, as ordinal data with enough categories
 # (≥ 5), big datasets and non-skewed distributions
 # can be treated as continious according to Rhemtulla et al.,2012)
-skewness(combined_waves[, justice_cols], na.rm = TRUE)
+moments::skewness(combined_waves[, justice_cols], na.rm = TRUE)
 describe(combined_waves[, justice_cols], na.rm = TRUE)
 # skewness between -1 and 1 indicates symmetrical distributions --> Curran et al. (1996) even say, it is no problem if there is skewness <2 and kurtosis <7. Both is the case here.
 # --> here all good, i can use MLR
@@ -174,11 +181,82 @@ cor_ma_factors_comwaves <- cor(combined_waves[, c(
   "justice_sub_4"
 )])
 ggcorrplot(cor_ma_factors_comwaves, lab = TRUE, title = "Cor Matrix: Justice variables in combined_waves ordered by factors")
+range(cor_ma_factors_comwaves) #-.06 to .57 (here 1 but heatmap shows .57 to be the highest)
 #there are no higher bivariate correlations than >.9 as suggested to be a problem (Kline, 2023, p. 56)
+#still there can be multicollinearity: therefore I calculate the variation inflation factor
+model_vif <- lm(justice_gen_1 ~ justice_tax_1 + justice_sub_1 + 
+                  justice_gen_2 + justice_tax_2 + justice_sub_2 + 
+                  justice_gen_3 + justice_tax_3 + justice_sub_3 + 
+                  justice_gen_4 + justice_tax_4 + justice_sub_4, 
+                data = combined_waves)
+vif(model_vif)
+range(vif(model_vif))
 
-#check for intern consistency of items (cronbachs alpha)
+#check for multivariate outliers
+mcd_justice <- covMcd(combined_waves[, justice_cols], alpha = 0.75) #minimum covariance determinant: robust version of estimating the center (Ghorbani, 2019) #here I use 0.75 as 0.5 is a less stable estimation
+mahal_distr <- mahalanobis(combined_waves[, justice_cols], center = mcd_justice$center, cov = mcd_justice$cov) #measure distance 
+combined_waves$mahal_dist <- NA
+combined_waves$mahal_dist[as.numeric(rownames(combined_waves[, justice_cols]))] <- mahal_distr
+n_vars <- length(justice_cols)
+combined_waves$mahal_pvalue <- NA
+combined_waves$mahal_pvalue[as.numeric(rownames(combined_waves[,justice_cols]))] <- 
+  pchisq(mahal_distr, df = n_vars, lower.tail = FALSE)
+combined_waves$is_outlier <- FALSE
+combined_waves$is_outlier[as.numeric(rownames(combined_waves[, justice_cols]))] <- 
+  combined_waves$mahal_pvalue[as.numeric(rownames(combined_waves[, justice_cols]))] < 0.001 # from  Whittaker & Schumacker, 2022; "Cases with squared MD values that exceed the χ2 critical with given df at an alpha of .001 have been suggested as multivariate outlying cases."
+sum(combined_waves$is_outlier) # 351 outliers detected
+outliers <- combined_waves[combined_waves$is_outlier == TRUE, ] 
+outliers_performance <- check_outliers(combined_waves[,justice_cols], method = "mcd") #another command from the performance package comes to a similar result
+
+#check why there may be so many outliers
+summary(mahal_distr)
+hist(mahal_distr, breaks = 50, main = "Mahalanobis Distances")
+abline(v = qchisq(0.99, df = 12), col = "red", lwd = 2) #it looks like there are not so many "real" outliers
+qchisq(0.99, df = 12) 
+outlier_indices <- which(mahal_distr > qchisq(0.99, df = 12))
+head(combined_waves[outlier_indices, justice_cols], 20) # most of them look normal to me, but some of the outliers are straight liners within one justice context (but not across all, as these were removed)
+#I therefore make a subsample of combined_waves without these straight liners
+combined_waves_cleaner <- combined_waves %>%
+  rowwise() %>%
+  filter(
+    n_distinct(c_across(starts_with("justice_gen"))) > 1 &
+      n_distinct(c_across(starts_with("justice_tax"))) > 1 &
+      n_distinct(c_across(starts_with("justice_sub"))) > 1
+  ) %>%
+  ungroup()
+nrow(combined_waves) - nrow(combined_waves_cleaner) #1075 people who straighlined at least on one context: more than one third, which is a lot.
+
+#I will only remove people who straight lined on at least two of the contexts
+combined_waves_clean <- combined_waves %>%
+  rowwise() %>%
+  filter(
+    (n_distinct(c_across(starts_with("justice_gen"))) == 1) +
+      (n_distinct(c_across(starts_with("justice_tax"))) == 1) +
+      (n_distinct(c_across(starts_with("justice_sub"))) == 1) < 2
+  ) %>%
+  ungroup()
+nrow(combined_waves) - nrow(combined_waves_clean) #this gives me a dataset reduced of 287 cases
+
+#descriptive item statistics
+#mean & sd
+summary(combined_waves[,justice_cols])
+describe(combined_waves[, justice_cols]) # mean, sd, median, skewness
+modeest::mfv(combined_waves$justice_gen_1)  # mode of first general context item
+modeest::mfv(combined_waves$justice_gen_2)
+modeest::mfv(combined_waves$justice_gen_3)
+modeest::mfv(combined_waves$justice_gen_4)
+modeest::mfv(combined_waves$justice_tax_1)  
+modeest::mfv(combined_waves$justice_tax_2)
+modeest::mfv(combined_waves$justice_tax_3)
+modeest::mfv(combined_waves$justice_tax_4)
+modeest::mfv(combined_waves$justice_sub_1)  
+modeest::mfv(combined_waves$justice_sub_2)
+modeest::mfv(combined_waves$justice_sub_3)
+modeest::mfv(combined_waves$justice_sub_4) # all modes are 4, is this realistic?
+
+
+#check for intern consistency of items (cronbachs alpha) and item total correlation
 #make subscales
-
 c_util <- c("justice_gen_1", "justice_tax_1", "justice_sub_1")
 c_equal <- c("justice_gen_2",
              "justice_tax_2",
@@ -273,8 +351,11 @@ cfa1 <- lavaan(
 #I therefore investigate through using lavInspect
 
 lavInspect(cfa1, "cov.lv") #some latent correlations (i.e., between equal & suff and equal & lim) are > 1, which is strange
+lavInspect(cfa1, "est")$theta #this shows residual variances of indicators: no Heywood cases
 summary(cfa1, standardized = TRUE)
-semPaths(cfa1, whatLabels = "stand", layout = "tree") #visualise model BUT! I cannot interpret it
+semPaths(cfa1, whatLabels = "stand", layout = "tree") #visualise model BUT! I cannot interpret it: there are no factor loading bigger than 1, which is good
+ev <- eigen(lavInspect(cfa1, "cov.lv"))$values
+ev #eigen values that are negative; is not possible, as eigenvalues denote variance explained by the factors; confirms the problem
 
 #visualise cor matrix with theorised latent factors next to each other
 cor_matrix_factors <- cor(combined_waves[, c(
@@ -291,7 +372,7 @@ cor_matrix_factors <- cor(combined_waves[, c(
   "justice_tax_4",
   "justice_sub_4"
 )])
-ggcorrplot(cor_matrix_factors, lab = TRUE, title = "Cor Matrix: Justice variables in combined_waves ordered by factors")
+ggcorrplot(cor_matrix_factors, lab = TRUE, title = "Correlations between justice variables ordered by factors")
 
 #visualise cor matrix with contexts next to each other
 cor_matrix_context <- cor(combined_waves[, c("justice_gen_1",
@@ -307,7 +388,7 @@ cor_matrix_context <- cor(combined_waves[, c("justice_gen_1",
                                               "justice_sub_3",
                                               "justice_sub_4"
 )])
-ggcorrplot(cor_matrix_context, lab = TRUE, title = "Cor Matrix: Justice variables in combined_waves ordered by contexts")
+ggcorrplot(cor_matrix_context, lab = TRUE, title = "Correlation between justice variables ordered by contexts")
 
 #check fit measures 
 fitMeasures(cfa1)
@@ -318,27 +399,7 @@ modindices(cfa1) #checking modification indices; they indicate I should free the
 #next they indicate I should add intercepts for the latent factors; as far as I know I can do so but then interpretation gets more difficult
 # further, they say, that the utilitarian factor should load onto all equal outcomes. This does not make sense from a theoretical perspective, 
 # but indicates that there is something wrong with the utilitarian factor; I consider removing it from the model.
-# but first I check for sources of that the covariance is not positive-definite
-
-#check for sources of the error that sample covariance is not positive-definite (it cannot be inverted)
-sapply(subset_combined, var, na.rm = TRUE) # there are no zero variances
-
-#check eigenvalues of covariance matrix
-cov_matrix_subset <- cov(subset_combined[, c("justice_gen_1",
-                                             "justice_gen_2",
-                                             "justice_gen_3",
-                                             "justice_gen_4",
-                                             "justice_tax_1",
-                                             "justice_tax_2",
-                                             "justice_tax_3",
-                                             "justice_tax_4",
-                                             "justice_sub_1",
-                                             "justice_sub_2",
-                                             "justice_sub_3",
-                                             "justice_sub_4"
-)])
-eigen(cov_matrix_subset)
-#ADD INTERPRETATION OF EIGENVALUES
+# but first I try to adress the issue of implausibly high latent correlations
 
 ################################################
 #adress latent correlations higher than 1 through restricting first loadings to be 1
@@ -392,7 +453,7 @@ cfa2 <- lavaan(model2, data = combined_waves, estimator = "MLR") #I still get th
 summary(cfa2, standardized = TRUE)
 
 ################################################################################
-#add methods factors (for each context) --> several context factors because of (SOURCE)
+#add methods factors (for each context) --> several context factors because of the correlation matrix
 # not hypothesised!!
 
 model3 <- '
@@ -452,8 +513,8 @@ justice_sub_3 ~ 1
 justice_sub_4 ~ 1
 '
 cfa3 <- lavaan(model3, data = combined_waves, estimator = "MLR")
-summary(cfa3)
-lavInspect(cfa3)
+summary(cfa3, standardized = TRUE)
+
 fitMeasures(cfa3)
 print(fitMeasures(cfa3, c("chisq", "df", "pvalue"))) #significant chisqd: X^2(36) = 368.895, p < .001
 print(fitMeasures(cfa3, c("rmsea",  "rmsea.ci.lower", "rmsea.ci.upper"))) # RMSEA = .052 (90% CI .048 - .057) indicating good to mediocre fit
@@ -463,7 +524,23 @@ print(fitMeasures(cfa3, "srmr")) # SRMR = 0.041 --> is smaller than .05, indicat
 semPaths(cfa3, whatLabels = "stand", layout = "tree", intercepts = FALSE) #visualisation
 ?semPaths
 
-######### with claude help #########
+cfa3_estimations <- inspect(cfa3, "std.all")
+cfa3_estimations$lambda # standardised factor loadings
+(cfa3_estimations$lambda)^2*100 #percent of explained variance
+1 - cfa3_estimations$theta # R^2 for all measured variables
+
+## fit the the same model onto the cleaned dataset (without participants straight lining in at least two contexts)
+cfa3_clean <- lavaan(model3, data = combined_waves_clean, estimator = "MLR")
+summary(cfa3_clean, standardized = TRUE)
+cfa3_clean_estimations <- inspect(cfa3_clean, "std.all")
+(cfa3_clean_estimations$lambda)^2*100
+print(fitMeasures(cfa3_clean, c("chisq", "df", "pvalue")))
+print(fitMeasures(cfa3_clean, c("rmsea",  "rmsea.ci.lower", "rmsea.ci.upper")))
+print(fitMeasures(cfa3_clean, "tli"))
+print(fitMeasures(cfa3_clean, "cfi"))
+print(fitMeasures(cfa3_clean, "srmr"))
+
+######### with claude help ######### visualise the cfa3
 p <- semPaths(cfa3, whatLabels = "stand", intercepts = FALSE, DoNotPlot = TRUE)
 
 # Define node groups
@@ -471,27 +548,57 @@ justice_nodes <- which(p$graphAttributes$Nodes$names %in% c("utl", "eql", "sff",
 context_nodes <- which(p$graphAttributes$Nodes$names %in% c("gen", "tax", "sub"))
 obs_nodes     <- setdiff(1:19, c(justice_nodes, context_nodes))
 
+# Desired order of observed variables
+desired_order <- c(
+  "justice_gen_1",
+  "justice_tax_1",
+  "justice_sub_1",
+  "justice_gen_2",
+  "justice_tax_2",
+  "justice_sub_2",
+  "justice_gen_3",
+  "justice_tax_3",
+  "justice_sub_3",
+  "justice_gen_4",
+  "justice_tax_4",
+  "justice_sub_4"
+)
+# Get the lavaan names (the "attr names") for the obs_nodes
+obs_lavaan_names <- names(p$graphAttributes$Nodes$names)[obs_nodes]
+
+# Reorder obs_nodes according to desired_order
+obs_nodes <- obs_nodes[match(desired_order, obs_lavaan_names)]
+
 # Assign y positions (3 levels)
 p$layout[justice_nodes, 2] <-  0.8    # top
 p$layout[obs_nodes, 2]     <-  0    # middle
 p$layout[context_nodes, 2] <- -0.8    # bottom
 p$layout[context_nodes[2], 2] <- -1  # tax even lower
+
 # Assign x positions (spread evenly within each level)
 p$layout[justice_nodes, 1] <- seq(-0.7,  0.7, length.out = length(justice_nodes))
 p$layout[obs_nodes, 1]     <- seq(-1.25,    1.25,   length.out = length(obs_nodes))
-p$layout[context_nodes, 1] <- seq(-0.4,  0.4, length.out = length(context_nodes))
+p$layout[context_nodes, 1] <- seq(-1,  1, length.out = length(context_nodes))
 
 p$graphAttributes$Nodes$loopRotation[context_nodes] <- pi
+
+# Rename observed item labels
+p$graphAttributes$Nodes$labels <- gsub("^jstc_g_", "gen_", p$graphAttributes$Nodes$labels)
+p$graphAttributes$Nodes$labels <- gsub("^jstc_t_", "tax_", p$graphAttributes$Nodes$labels)
+p$graphAttributes$Nodes$labels <- gsub("^jstc_s_", "sub_", p$graphAttributes$Nodes$labels)
+p$graphAttributes$Nodes$label.cex <- 0.9
+
 plot(p)
-
-
 
 
 ###########################################################
 
 
-modindices(cfa3)
+modindices(cfa3, sort. = TRUE)
 ?modindices
+
+compRelSEM(cfa1)
+compRelSEM(cfa3) # the McDonald's omegas are better here than on the cfa1 model.
 
 
 ###################################################################################################
