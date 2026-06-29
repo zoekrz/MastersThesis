@@ -19,12 +19,12 @@ dat$datetime <- dmy_hm(dat$RecordedDate)
 dat$RecordedDate <- NULL
 
 dat <- dat %>% #rename gender
-  mutate(gender = recode(gender,
+  mutate(gender = dplyr::recode(gender,
                          "weiblich" = "Female",
                          "männlich"= "Male"))
 
 dat <- dat %>% #rename age
-  mutate(age = recode(age, 
+  mutate(age = dplyr::recode(age, 
                       "zwischen 18 und 39 Jahren" = "18-39",
                       "zwischen 40 und 64 Jahren" = "40-64",
                       "65 oder älter" = "65 or older"))
@@ -56,7 +56,7 @@ dat$income <- factor( #make income ordered
 )
 
 dat <- dat %>%
-  mutate(income = recode(income,
+  mutate(income = dplyr::recode(income,
                          "Unter 34'000" = "Bottom 10%" ,
                          "von CHF 34'001 – CHF 45'000" = "Below average",
                          "von CHF 45'001 – CHF 77'000" = "Average",
@@ -66,7 +66,7 @@ dat <- dat %>%
 
 ggplot(data.frame(x = dat$income), aes(x = x, y = after_stat(count / sum(count)))) +
   geom_bar(fill = "grey") +
-  labs(title = "Income distribution in qualitative dataset", x = "Income category", y = "Percentage (%)") +
+  labs(title = "Income distribution in qualitative dataset", x = "Income category", y = "Proportion") +
   theme(axis.text = element_text(angle = 45, hjust = 1)) +
   theme_classic()
   
@@ -127,7 +127,7 @@ table(dat$party.identification) #7 participants identified with SP, 5 didn't ide
 
 dat <- dat %>%
   mutate(
-    party.identification = recode(
+    party.identification = dplyr::recode(
       party.identification,
       "Sozialdemokratische Partei der Schweiz (SP)" = "1",
       "Grünliberale Partei (GLP)" = "4",
@@ -141,7 +141,7 @@ dat <- dat %>%
 unique(dat$party.identification)
 
 dat <- dat %>%
-  mutate(education = recode(
+  mutate(education = dplyr::recode(
     education, 
     "Keine Matura" = "No high school diploma",
     "Matura oder Berufsausbildung" = "High school or vocational training" ,
@@ -154,8 +154,8 @@ dat <- dat %>%
 com_waves_german <- subset(
   combined_waves,
   language_region == "German-speaking region" &
-    (gender == "Male" |
-       gender == "Female") &
+    (gender == "male" |
+       gender == "female") &
     (residence == "agglomeration" |
         residence == "city" | residence == "countryside") &
     (education == "Degree from a university or university of applied sciences" |
@@ -166,43 +166,48 @@ com_waves_german <- subset(
 quant_prop_gender <- prop.table(table(com_waves_german$gender))
 qual_counts_gender <- table(dat$gender)
 expected_counts_gender <- quant_prop_gender * nrow(dat) #no expected counts under 5
-chisq.test(qual_counts_gender, p = quant_prop_gender) #no significant difference in the two distributions
-
+chi_qual_income <- chisq.test(qual_counts_gender, p = quant_prop_gender) #no significant difference in the two distributions
+cramersv_qual_gender <- sqrt(chi_qual_income$statistic / (sum(qual_counts_gender)* (length(qual_counts_gender)-1)))
 # age
 quant_prop_age <- prop.table(table(com_waves_german$age))
 qual_counts_age <- table(dat$age)
 quant_prop_age * 21 # no expected counts under 5
-chisq.test(qual_counts_age, p = quant_prop_age) #no significant difference in the two distributions
-
+chi_qual_age <- chisq.test(qual_counts_age, p = quant_prop_age) #no significant difference in the two distributions
+cramersv_qual_age <- sqrt(chi_qual_age$statistic / (sum(qual_counts_age)*(length(qual_counts_age)-1)))
 # income
 quant_prop_income <- prop.table(table(com_waves_german$income))
 qual_counts_income <- table(dat$income)
 quant_prop_income * 21 #several expected counts under 5 --> use monte carlo simulation
-chisq.test(qual_counts_income, p = quant_prop_income, simulate.p.value = TRUE) #no significant difference in the two distribution
+chi_qual_income <- chisq.test(qual_counts_income, p = quant_prop_income, simulate.p.value = TRUE) #no significant difference in the two distribution
+cramersv_qual_income <- sqrt(chi_qual_income$statistic / (sum(qual_counts_income)*(length(qual_counts_income)-1)))
 
 # renting
 dat_cleanrenting <- subset(dat, renting == "tenant" | renting == "owner") #make cleaned version of dat without unclear renting situation
 quant_prop_renting <- prop.table(table(com_waves_german$renting))
 qual_counts_renting <- table(dat_cleanrenting$renting)
 quant_prop_renting * 20 #no expected counts under 5
-chisq.test(qual_counts_renting, p = quant_prop_renting) #there are significantly less homeowners in the qual sample than expected in regard to the quant sample
+chi_qual_renting <- chisq.test(qual_counts_renting, p = quant_prop_renting) #there are significantly less homeowners in the qual sample than expected in regard to the quant sample
+cramersv_qual_renting <- sqrt(chi_qual_renting$statistic / (sum(qual_counts_renting)*(length(qual_counts_renting)-1)))
 
 # residence
 quant_prop_residence <- prop.table(table(com_waves_german$residence))
 qual_counts_residence <- table(dat$urbanness)
 quant_prop_residence * 21 #one expected count under 5, so I use monte carlo simulation
-chisq.test(qual_counts_residence, p = quant_prop_residence, simulate.p.value = TRUE) #no significant differences between distributions in residence
+chi_qual_residence <- chisq.test(qual_counts_residence, p = quant_prop_residence, simulate.p.value = TRUE) #no significant differences between distributions in residence
+cramersv_qual_residence <- sqrt(chi_qual_residence$statistic / (sum(qual_counts_residence)*(length(qual_counts_residence)-1)))
 
 #education
 quant_prop_educ <- prop.table(table(com_waves_german$education))
 qual_counts_educ <- table(dat$education)
 quant_prop_educ * 21 #one expected count of <5
-chisq.test(qual_counts_educ, p = quant_prop_educ, simulate.p.value = TRUE) #no significant differences between distributions in education
+chi_qual_educ <- chisq.test(qual_counts_educ, p = quant_prop_educ, simulate.p.value = TRUE) #no significant differences between distributions in education
+cramersv_qual_educ <- sqrt(chi_qual_educ$statistic / (sum(qual_counts_educ)*(length(qual_counts_educ)-1)))
 
 #party identification 
 com_waves_germ_pol <- subset(com_waves_german, wave == "wave1") # make new dataset of combined waves only with wave 1 data, as then political position collected equally
 quant_prop_party <- prop.table(table(com_waves_germ_pol$political_position))
 qual_counts_party <- table(dat$party.identification)
 quant_prop_party *21 #several counts <5
-chisq.test(qual_counts_party, p = quant_prop_party, simulate.p.value = TRUE) 
+chi_qual_party <- chisq.test(qual_counts_party, p = quant_prop_party, simulate.p.value = TRUE) 
+cramersv_qual_party <- sqrt(chi_qual_party$statistic / (sum(qual_counts_party)*(length(qual_counts_party)-1)))
 
