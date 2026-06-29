@@ -69,7 +69,7 @@ combined_waves$income <- factor(
 )
 ggplot(data.frame(x = combined_waves$income), aes(x = x, y = after_stat(count / sum(count)))) +
   geom_bar(fill = "grey") +
-  labs(title = "Income distribution in quantitative dataset", x = "Income category", y = "Percentage (%)") +
+  labs(title = "Income distribution in quantitative dataset", x = "Income category", y = "Proportion") +
   theme(axis.text = element_text(angle = 45, hjust = 1)) +
   theme_classic()
 
@@ -101,11 +101,26 @@ chi_language_reg <- chisq.test(quant_counts_language_reg, p = prop_language_reg_
 cramersv_language_reg <- sqrt(chi_language_reg$statistic /(sum(quant_counts_language_reg)*(length(quant_counts_language_reg)-1)))
 print(cramersv_language_reg) #impossibly large, therefore, I cannot report this probably the language regions are not really representative, because I took both samples into the calculation
 
-# income no available data. but the two samples show a very different distribution
+# income: data from https://www.bfs.admin.ch/bfs/de/home/statistiken/kataloge-datenbanken.assetdetail.36507756.html
 filtered_com_wave3 <- combined_waves %>%
   filter(wave == "wave3")
 prop.table(table(filtered_com_wave1$income))
 prop.table(table(filtered_com_wave3$income))
+
+prop_income_popul <- c("lower third" = .40, "middle third" = .20, "upper third" = .40)
+filtered_com_wave3_income <- filtered_com_wave3 %>%
+  mutate(income = dplyr::recode(income, 
+         "Bottom 10%" = "lower third",
+         "Below average" = "lower third",
+          "Average" = "lower third",
+         "Above average" = "middle third",
+         "Top 10%" = "upper third"))
+filtered_com_wave3_income <- filtered_com_wave3_income %>%
+  filter(!is.na(income) & income != "Prefer not to say")
+quant_counts_income <- table(factor(filtered_com_wave3_income$income, 
+                                    levels = c("lower third", "middle third", "upper third")))
+chi_income <- chisq.test(quant_counts_income, p = prop_income_popul)
+cramersv_income <- sqrt(chi_income$statistic / (sum(quant_counts_income) * (length(quant_counts_income)-1)))
 
 ## from Bildungsstand der Bevölkerung – Daten des Indikators
 prop_education_popul <- c("No high school diploma"= 13.9, "High school or vocational training" = 39.9, "Degree from a university or university of applied sciences"= 46.2)/100
@@ -721,6 +736,24 @@ AIC(cfa5)
 BIC(cfa5) # model 3 shows better fit: AIC = 124203 vs. 124546 / BIC = 124533 vs. 124845
 AIC(cfa3) - AIC(cfa5)
 BIC(cfa3) - BIC(cfa5)
+
+
+#fit the same model onto the cleaned dataset
+cfa5_clean <- lavaan(model5, data = combined_waves_clean, estimator = "MLR")
+summary(cfa5_clean, standardized = TRUE)
+cfa5_clean_estimations <- inspect(cfa5_clean, "std.all") 
+(cfa5_clean_estimations$lambda)^2*100 #explained variance in items
+print(fitMeasures(cfa5_clean, c("chisq", "df", "pvalue")))
+print(fitMeasures(cfa5_clean, c("rmsea",  "rmsea.ci.lower", "rmsea.ci.upper")))
+print(fitMeasures(cfa5_clean, "tli"))
+print(fitMeasures(cfa5_clean, "cfi"))
+print(fitMeasures(cfa5_clean, "srmr"))
+
+#compare this model with the cleaned wave model of cfa3
+AIC(cfa5_clean) - AIC(cfa3_clean) # --> delta AIC = 236
+BIC(cfa5_clean) - BIC(cfa3_clean) # ---> delta BIC = 206
+
+
 
 
 ##########################
