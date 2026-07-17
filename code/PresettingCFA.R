@@ -292,17 +292,34 @@ wave1 <- wave1 %>%
   )
 
 #rename justice variables & make them comparable
-names(wave1)[names(wave1) == "justice_general_1"] <- "justice_gen_1"
-names(wave1)[names(wave1) == "justice_general_2"] <- "justice_gen_2"
-names(wave1)[names(wave1) == "justice_general_3"] <- "justice_gen_3"
-names(wave1)[names(wave1) == "justice_general_4"] <- "justice_gen_4"
-names(wave1)[names(wave1) == "justice_subsidy_1"] <- "justice_sub_1"
-names(wave1)[names(wave1) == "justice_subsidy_2"] <- "justice_sub_2"
-names(wave1)[names(wave1) == "justice_subsidy_3"] <- "justice_sub_3"
-names(wave1)[names(wave1) == "justice_subsidy_4"] <- "justice_sub_4"
+names(wave1)[names(wave1) == "justice_general_1"] <- "gen_1"
+names(wave1)[names(wave1) == "justice_general_2"] <- "gen_2"
+names(wave1)[names(wave1) == "justice_general_3"] <- "gen_3"
+names(wave1)[names(wave1) == "justice_general_4"] <- "gen_4"
+names(wave1)[names(wave1) == "justice_tax_1"] <- "tax_1"
+names(wave1)[names(wave1) == "justice_tax_2"] <- "tax_2"
+names(wave1)[names(wave1) == "justice_tax_3"] <- "tax_3"
+names(wave1)[names(wave1) == "justice_tax_4"] <- "tax_4"
+names(wave1)[names(wave1) == "justice_subsidy_1"] <- "sub_1"
+names(wave1)[names(wave1) == "justice_subsidy_2"] <- "sub_2"
+names(wave1)[names(wave1) == "justice_subsidy_3"] <- "sub_3"
+names(wave1)[names(wave1) == "justice_subsidy_4"] <- "sub_4"
 
-unique(wave1$justice_gen_1)
-unique(wave3$justice_gen_1)
+names(wave3)[names(wave3) == "justice_gen_1"] <- "gen_1"
+names(wave3)[names(wave3) == "justice_gen_2"] <- "gen_2"
+names(wave3)[names(wave3) == "justice_gen_3"] <- "gen_3"
+names(wave3)[names(wave3) == "justice_gen_4"] <- "gen_4"
+names(wave3)[names(wave3) == "justice_tax_1"] <- "tax_1"
+names(wave3)[names(wave3) == "justice_tax_2"] <- "tax_2"
+names(wave3)[names(wave3) == "justice_tax_3"] <- "tax_3"
+names(wave3)[names(wave3) == "justice_tax_4"] <- "tax_4"
+names(wave3)[names(wave3) == "justice_sub_1"] <- "sub_1"
+names(wave3)[names(wave3) == "justice_sub_2"] <- "sub_2"
+names(wave3)[names(wave3) == "justice_sub_3"] <- "sub_3"
+names(wave3)[names(wave3) == "justice_sub_4"] <- "sub_4"
+
+unique(wave1$gen_1)
+unique(wave3$gen_1)
 
 justice_approval <- c(
   "Stimme voll und ganz zu" = "Strongly agree",
@@ -316,33 +333,33 @@ justice_approval <- c(
 
 wave1 <- wave1 %>%
   mutate(
-    justice_gen_1 = dplyr::recode(justice_gen_1, !!!justice_approval),
-    justice_gen_2 = dplyr::recode(justice_gen_2, !!!justice_approval),
-    justice_gen_3 = dplyr::recode(justice_gen_3, !!!justice_approval),
-    justice_gen_4 = dplyr::recode(justice_gen_4, !!!justice_approval),
-    justice_tax_1 = dplyr::recode(justice_tax_1, !!!justice_approval),
-    justice_tax_2 = dplyr::recode(justice_tax_2, !!!justice_approval),
-    justice_tax_3 = dplyr::recode(justice_tax_3, !!!justice_approval),
-    justice_tax_4 = dplyr::recode(justice_tax_4, !!!justice_approval),
-    justice_sub_1 = dplyr::recode(justice_sub_1, !!!justice_approval),
-    justice_sub_2 = dplyr::recode(justice_sub_2, !!!justice_approval),
-    justice_sub_3 = dplyr::recode(justice_sub_3, !!!justice_approval),
-    justice_sub_4 = dplyr::recode(justice_sub_4, !!!justice_approval)
+    gen_1 = dplyr::recode(gen_1, !!!justice_approval),
+    gen_2 = dplyr::recode(gen_2, !!!justice_approval),
+    gen_3 = dplyr::recode(gen_3, !!!justice_approval),
+    gen_4 = dplyr::recode(gen_4, !!!justice_approval),
+    tax_1 = dplyr::recode(tax_1, !!!justice_approval),
+    tax_2 = dplyr::recode(tax_2, !!!justice_approval),
+    tax_3 = dplyr::recode(tax_3, !!!justice_approval),
+    tax_4 = dplyr::recode(tax_4, !!!justice_approval),
+    sub_1 = dplyr::recode(sub_1, !!!justice_approval),
+    sub_2 = dplyr::recode(sub_2, !!!justice_approval),
+    sub_3 = dplyr::recode(sub_3, !!!justice_approval),
+    sub_4 = dplyr::recode(sub_4, !!!justice_approval)
   )
 
 wave3 <- wave3 %>%
-  mutate(justice_gen_1 = na_if(justice_gen_1, ""),
-         justice_gen_2 = na_if(justice_gen_2, ""),
-         justice_gen_3 = na_if(justice_gen_3, ""),
-         justice_gen_4 = na_if(justice_gen_4, ""),
-         justice_tax_1 = na_if(justice_tax_1, ""),
-         justice_tax_2 = na_if(justice_tax_2, ""),
-         justice_tax_3 = na_if(justice_tax_3, ""),
-         justice_tax_4 = na_if(justice_tax_4, ""),
-         justice_sub_1 = na_if(justice_sub_1, ""),
-         justice_sub_2 = na_if(justice_sub_2, ""),
-         justice_sub_3 = na_if(justice_sub_3, ""),
-         justice_sub_4 = na_if(justice_sub_4, "")
+  mutate(gen_1 = na_if(gen_1, ""),
+         gen_2 = na_if(gen_2, ""),
+         gen_3 = na_if(gen_3, ""),
+         gen_4 = na_if(gen_4, ""),
+         tax_1 = na_if(tax_1, ""),
+         tax_2 = na_if(tax_2, ""),
+         tax_3 = na_if(tax_3, ""),
+         tax_4 = na_if(tax_4, ""),
+         sub_1 = na_if(sub_1, ""),
+         sub_2 = na_if(sub_2, ""),
+         sub_3 = na_if(sub_3, ""),
+         sub_4 = na_if(sub_4, "")
   )
 # merge open justice questions in wave3, add empty open justice question to wave 1
 wave3 <- wave3 %>%
@@ -469,18 +486,18 @@ wave3 <- wave3 %>%
     trust_2,
     trust_3,
     satisfaction_1,
-    justice_gen_1,
-    justice_gen_2,
-    justice_gen_3,
-    justice_gen_4,
-    justice_tax_1,
-    justice_tax_2,
-    justice_tax_3,
-    justice_tax_4,
-    justice_sub_1,
-    justice_sub_2,
-    justice_sub_3,
-    justice_sub_4,
+    gen_1,
+    gen_2,
+    gen_3,
+    gen_4,
+    tax_1,
+    tax_2,
+    tax_3,
+    tax_4,
+    sub_1,
+    sub_2,
+    sub_3,
+    sub_4,
     justice_open_text,
     justice_open_set,
     .after = start_date
@@ -509,18 +526,18 @@ wave1 <- wave1 %>%
     trust_2,
     trust_3,
     satisfaction_1,
-    justice_gen_1,
-    justice_gen_2,
-    justice_gen_3,
-    justice_gen_4,
-    justice_tax_1,
-    justice_tax_2,
-    justice_tax_3,
-    justice_tax_4,
-    justice_sub_1,
-    justice_sub_2,
-    justice_sub_3,
-    justice_sub_4,
+    gen_1,
+    gen_2,
+    gen_3,
+    gen_4,
+    tax_1,
+    tax_2,
+    tax_3,
+    tax_4,
+    sub_1,
+    sub_2,
+    sub_3,
+    sub_4,
     justice_open_text,
     justice_open_set,
     .after = start_date
@@ -551,18 +568,18 @@ justice_numeric <- c(
 )
 combined_waves <- combined_waves %>%
   mutate(
-    justice_gen_1 = dplyr::recode(justice_gen_1, !!!justice_numeric),
-    justice_gen_2 = dplyr::recode(justice_gen_2, !!!justice_numeric),
-    justice_gen_3 = dplyr::recode(justice_gen_3, !!!justice_numeric),
-    justice_gen_4 = dplyr::recode(justice_gen_4, !!!justice_numeric),
-    justice_tax_1 = dplyr::recode(justice_tax_1, !!!justice_numeric),
-    justice_tax_2 = dplyr::recode(justice_tax_2, !!!justice_numeric),
-    justice_tax_3 = dplyr::recode(justice_tax_3, !!!justice_numeric),
-    justice_tax_4 = dplyr::recode(justice_tax_4, !!!justice_numeric),
-    justice_sub_1 = dplyr::recode(justice_sub_1, !!!justice_numeric),
-    justice_sub_2 = dplyr::recode(justice_sub_2, !!!justice_numeric),
-    justice_sub_3 = dplyr::recode(justice_sub_3, !!!justice_numeric),
-    justice_sub_4 = dplyr::recode(justice_sub_4, !!!justice_numeric)
+    gen_1 = dplyr::recode(gen_1, !!!justice_numeric),
+    gen_2 = dplyr::recode(gen_2, !!!justice_numeric),
+    gen_3 = dplyr::recode(gen_3, !!!justice_numeric),
+    gen_4 = dplyr::recode(gen_4, !!!justice_numeric),
+    tax_1 = dplyr::recode(tax_1, !!!justice_numeric),
+    tax_2 = dplyr::recode(tax_2, !!!justice_numeric),
+    tax_3 = dplyr::recode(tax_3, !!!justice_numeric),
+    tax_4 = dplyr::recode(tax_4, !!!justice_numeric),
+    sub_1 = dplyr::recode(sub_1, !!!justice_numeric),
+    sub_2 = dplyr::recode(sub_2, !!!justice_numeric),
+    sub_3 = dplyr::recode(sub_3, !!!justice_numeric),
+    sub_4 = dplyr::recode(sub_4, !!!justice_numeric)
   )
 
 
