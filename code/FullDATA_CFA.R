@@ -23,18 +23,18 @@ options(scipen = 999) #limit decimals
 
 #add necessary object from subset CFA: 
 justice_cols <- c(
-  "justice_gen_1",
-  "justice_gen_2",
-  "justice_gen_3",
-  "justice_gen_4",
-  "justice_tax_1",
-  "justice_tax_2",
-  "justice_tax_3",
-  "justice_tax_4",
-  "justice_sub_1",
-  "justice_sub_2",
-  "justice_sub_3",
-  "justice_sub_4"
+  "gen_1",
+  "gen_2",
+  "gen_3",
+  "gen_4",
+  "tax_1",
+  "tax_2",
+  "tax_3",
+  "tax_4",
+  "sub_1",
+  "sub_2",
+  "sub_3",
+  "sub_4"
 )
 
 # sample characteristics
@@ -182,27 +182,28 @@ describe(combined_waves[, justice_cols], na.rm = TRUE)
 
 #check if some items show multicollinearity (vif)
 cor_ma_factors_comwaves <- cor(combined_waves[, c(
-  "justice_gen_1",
-  "justice_tax_1",
-  "justice_sub_1",
-  "justice_gen_2",
-  "justice_tax_2",
-  "justice_sub_2",
-  "justice_gen_3",
-  "justice_tax_3",
-  "justice_sub_3",
-  "justice_gen_4",
-  "justice_tax_4",
-  "justice_sub_4"
+  "gen_1",
+  "tax_1",
+  "sub_1",
+  "gen_2",
+  "tax_2",
+  "sub_2",
+  "gen_3",
+  "tax_3",
+  "sub_3",
+  "gen_4",
+  "tax_4",
+  "sub_4"
 )])
 ggcorrplot(cor_ma_factors_comwaves, lab = TRUE, title = "Cor Matrix: Justice variables in combined_waves ordered by factors")
-range(cor_ma_factors_comwaves) #-.06 to .57 (here 1 but heatmap shows .57 to be the highest)
+range(cor_ma_factors_comwaves) #-.07 to .57 (here 1 because of variances but heatmap shows .57 to be the highest)
+
 #there are no higher bivariate correlations than >.9 as suggested to be a problem (Kline, 2023, p. 56)
 #still there can be multicollinearity: therefore I calculate the variation inflation factor
-model_vif <- lm(justice_gen_1 ~ justice_tax_1 + justice_sub_1 + 
-                  justice_gen_2 + justice_tax_2 + justice_sub_2 + 
-                  justice_gen_3 + justice_tax_3 + justice_sub_3 + 
-                  justice_gen_4 + justice_tax_4 + justice_sub_4, 
+model_vif <- lm(gen_1 ~ tax_1 + sub_1 + 
+                  gen_2 + tax_2 + sub_2 + 
+                  gen_3 + tax_3 + sub_3 + 
+                  gen_4 + tax_4 + sub_4, 
                 data = combined_waves)
 vif(model_vif)
 range(vif(model_vif))
@@ -234,9 +235,9 @@ head(combined_waves[outlier_indices, justice_cols], 20) # most of them look norm
 combined_waves_cleaner <- combined_waves %>%
   rowwise() %>%
   filter(
-    n_distinct(c_across(starts_with("justice_gen"))) > 1 &
-      n_distinct(c_across(starts_with("justice_tax"))) > 1 &
-      n_distinct(c_across(starts_with("justice_sub"))) > 1
+    n_distinct(c_across(starts_with("gen_"))) > 1 &
+      n_distinct(c_across(starts_with("tax_"))) > 1 &
+      n_distinct(c_across(starts_with("sub_"))) > 1
   ) %>%
   ungroup()
 nrow(combined_waves) - nrow(combined_waves_cleaner) #1075 people who straighlined at least on one context: more than one third, which is a lot.
@@ -245,52 +246,76 @@ nrow(combined_waves) - nrow(combined_waves_cleaner) #1075 people who straighline
 combined_waves_clean <- combined_waves %>%
   rowwise() %>%
   filter(
-    (n_distinct(c_across(starts_with("justice_gen"))) == 1) +
-      (n_distinct(c_across(starts_with("justice_tax"))) == 1) +
-      (n_distinct(c_across(starts_with("justice_sub"))) == 1) < 2
+    (n_distinct(c_across(starts_with("gen_"))) == 1) +
+      (n_distinct(c_across(starts_with("tax_"))) == 1) +
+      (n_distinct(c_across(starts_with("sub_"))) == 1) < 2
   ) %>%
   ungroup()
 nrow(combined_waves) - nrow(combined_waves_clean) #this gives me a dataset reduced of 287 cases
+
+#check if people took less long when straight lining
+mean(combined_waves$duration_min)
+mean(combined_waves_cleaner$duration_min) #the cleaner wave has a longer mean duration but if this is statistically significant is not clear
+#therefore I compare the cleaner wave with the remainer (so that the compared samples are indipendent)
+combined_waves_straightliners <- combined_waves %>%
+  anti_join(combined_waves_cleaner, by = "id")
+nrow(combined_waves_straightliners) #has the right number of rows
+
+hist(combined_waves_cleaner$duration_min)
+hist(combined_waves_straightliners$duration_min) #both are not normally distributed so I will use the Mann-Withney U test
+
+wilcox.test(combined_waves_cleaner$duration_min, combined_waves_straightliners$duration_min) # is significatn; so there is a significant difference (however, big samples, I will also look at the differences between the distributions)
+median(combined_waves_cleaner$duration_min)
+median(combined_waves_straightliners$duration_min)
+#it's a non-parametric test so I will calculate Rank-biserial correlation after Wendt (1972, as cited in Kerby, 2014)
+n1 <- nrow(combined_waves_cleaner)
+n2 <- nrow(combined_waves_straightliners)
+test_result <- wilcox.test(combined_waves_cleaner$duration_min, 
+                           combined_waves_straightliners$duration_min)
+U <- test_result$statistic
+rb_r <- 1 - (2 * U) / (n1 * n2)
+rb_r #the correlation is quite small, so there is not really a big difference between the two samples in how long they took
+
 
 #descriptive item statistics
 #mean & sd
 summary(combined_waves[,justice_cols])
 describe(combined_waves[, justice_cols]) # mean, sd, median, skewness
-modeest::mfv(combined_waves$justice_gen_1)  # mode of first general context item
-modeest::mfv(combined_waves$justice_gen_2)
-modeest::mfv(combined_waves$justice_gen_3)
-modeest::mfv(combined_waves$justice_gen_4)
-modeest::mfv(combined_waves$justice_tax_1)  
-modeest::mfv(combined_waves$justice_tax_2)
-modeest::mfv(combined_waves$justice_tax_3)
-modeest::mfv(combined_waves$justice_tax_4)
-modeest::mfv(combined_waves$justice_sub_1)  
-modeest::mfv(combined_waves$justice_sub_2)
-modeest::mfv(combined_waves$justice_sub_3)
-modeest::mfv(combined_waves$justice_sub_4) # all modes are 4, is this realistic?
+modeest::mfv(combined_waves$gen_1)  # mode of first general context item
+modeest::mfv(combined_waves$gen_2)
+modeest::mfv(combined_waves$gen_3)
+modeest::mfv(combined_waves$gen_4)
+modeest::mfv(combined_waves$tax_1)  
+modeest::mfv(combined_waves$tax_2)
+modeest::mfv(combined_waves$tax_3)
+modeest::mfv(combined_waves$tax_4)
+modeest::mfv(combined_waves$sub_1)  
+modeest::mfv(combined_waves$sub_2)
+modeest::mfv(combined_waves$sub_3)
+modeest::mfv(combined_waves$sub_4) # all modes are 4, is this realistic?
 
 
 #check for intern consistency of items (cronbachs alpha) and item total correlation
 #make subscales
-c_util <- c("justice_gen_1", "justice_tax_1", "justice_sub_1")
-c_equal <- c("justice_gen_2",
-             "justice_tax_2",
-             "justice_sub_2")
-c_suff <- c("justice_gen_3",
-            "justice_tax_3",
-            "justice_sub_3")
-c_limit <- c("justice_gen_4",
-             "justice_tax_4",
-             "justice_sub_4")
-c_dis_sen <- c("justice_gen_2",
-               "justice_tax_2",
-               "justice_sub_2",
-               "justice_gen_3",
-               "justice_tax_3",
-               "justice_sub_3",
-               "justice_gen_4",
-               "justice_tax_4",
-               "justice_sub_4")
+c_util <- c("gen_1", "tax_1", "sub_1")
+c_equal <- c("gen_2",
+             "tax_2",
+             "sub_2")
+c_suff <- c("gen_3",
+            "tax_3",
+            "sub_3")
+c_limit <- c("gen_4",
+             "tax_4",
+             "sub_4")
+c_dis_sen <- c("gen_2",
+               "tax_2",
+               "sub_2",
+               "gen_3",
+               "tax_3",
+               "sub_3",
+               "gen_4",
+               "tax_4",
+               "sub_4")
 alpha_util <- psych::alpha(combined_waves[,c_util])
 alpha_equal <- psych::alpha(combined_waves[,c_equal])
 alpha_suff <- psych::alpha(combined_waves[,c_suff])
@@ -312,10 +337,10 @@ print(alpha_dis_sen) # alpha = 0.81uni
 
 model1 <- '
 #latent regressions justice
-util =~ justice_gen_1 + justice_tax_1 + justice_sub_1
-equal =~ justice_gen_2 + justice_tax_2 + justice_sub_2
-suff =~ justice_gen_3 + justice_tax_3 + justice_sub_3
-lim =~ justice_gen_4 + justice_tax_4 + justice_sub_4
+util =~ gen_1 + tax_1 + sub_1
+equal =~ gen_2 + tax_2 + sub_2
+suff =~ gen_3 + tax_3 + sub_3
+lim =~ gen_4 + tax_4 + sub_4
 
 #set latent variance to 1 for identification
 util ~~ 1*util
@@ -329,32 +354,32 @@ equal ~~ suff + lim
 suff ~~ lim
 
 #estimate residual variances
-justice_gen_1 ~~ justice_gen_1
-justice_gen_2 ~~ justice_gen_2
-justice_gen_3 ~~ justice_gen_3
-justice_gen_4 ~~ justice_gen_4
-justice_tax_1 ~~ justice_tax_1
-justice_tax_2 ~~ justice_tax_2
-justice_tax_3 ~~ justice_tax_3
-justice_tax_4 ~~ justice_tax_4
-justice_sub_1 ~~ justice_sub_1
-justice_sub_2 ~~ justice_sub_2
-justice_sub_3 ~~ justice_sub_3
-justice_sub_4 ~~ justice_sub_4
+gen_1 ~~ gen_1
+gen_2 ~~ gen_2
+gen_3 ~~ gen_3
+gen_4 ~~ gen_4
+tax_1 ~~ tax_1
+tax_2 ~~ tax_2
+tax_3 ~~ tax_3
+tax_4 ~~ tax_4
+sub_1 ~~ sub_1
+sub_2 ~~ sub_2
+sub_3 ~~ sub_3
+sub_4 ~~ sub_4
 
 # measured intercepts
-justice_gen_1 ~ 1
-justice_gen_2 ~ 1
-justice_gen_3 ~ 1
-justice_gen_4 ~ 1
-justice_tax_1 ~ 1
-justice_tax_2 ~ 1
-justice_tax_3 ~ 1
-justice_tax_4 ~ 1
-justice_sub_1 ~ 1
-justice_sub_2 ~ 1
-justice_sub_3 ~ 1
-justice_sub_4 ~ 1
+gen_1 ~ 1
+gen_2 ~ 1
+gen_3 ~ 1
+gen_4 ~ 1
+tax_1 ~ 1
+tax_2 ~ 1
+tax_3 ~ 1
+tax_4 ~ 1
+sub_1 ~ 1
+sub_2 ~ 1
+sub_3 ~ 1
+sub_4 ~ 1
 
 '
 
@@ -374,36 +399,71 @@ ev #eigen values that are negative; is not possible, as eigenvalues denote varia
 
 #visualise cor matrix with theorised latent factors next to each other
 cor_matrix_factors <- cor(combined_waves[, c(
-  "justice_gen_1",
-  "justice_tax_1",
-  "justice_sub_1",
-  "justice_gen_2",
-  "justice_tax_2",
-  "justice_sub_2",
-  "justice_gen_3",
-  "justice_tax_3",
-  "justice_sub_3",
-  "justice_gen_4",
-  "justice_tax_4",
-  "justice_sub_4"
+  "gen_1",
+  "tax_1",
+  "sub_1",
+  "gen_2",
+  "tax_2",
+  "sub_2",
+  "gen_3",
+  "tax_3",
+  "sub_3",
+  "gen_4",
+  "tax_4",
+  "sub_4"
 )])
 ggcorrplot(cor_matrix_factors, lab = TRUE, title = "Correlations between justice variables ordered by factors")
 
 #visualise cor matrix with contexts next to each other
-cor_matrix_context <- cor(combined_waves[, c("justice_gen_1",
-                                              "justice_gen_2",
-                                              "justice_gen_3",
-                                              "justice_gen_4",
-                                              "justice_tax_1",
-                                              "justice_tax_2",
-                                              "justice_tax_3",
-                                              "justice_tax_4",
-                                              "justice_sub_1",
-                                              "justice_sub_2",
-                                              "justice_sub_3",
-                                              "justice_sub_4"
+cor_matrix_context <- cor(combined_waves[, c("gen_1",
+                                              "gen_2",
+                                              "gen_3",
+                                              "gen_4",
+                                              "tax_1",
+                                              "tax_2",
+                                              "tax_3",
+                                              "tax_4",
+                                              "sub_1",
+                                              "sub_2",
+                                              "sub_3",
+                                              "sub_4"
 )])
 ggcorrplot(cor_matrix_context, lab = TRUE, title = "Correlation between justice variables ordered by contexts")
+
+#make the same for the cleaned dataset (cleaner!! wave)
+cor_matrix_factors_cleaner <- cor(combined_waves_cleaner[, c(
+  "gen_1",
+  "tax_1",
+  "sub_1",
+  "gen_2",
+  "tax_2",
+  "sub_2",
+  "gen_3",
+  "tax_3",
+  "sub_3",
+  "gen_4",
+  "tax_4",
+  "sub_4"
+)])
+ggcorrplot(cor_matrix_factors_cleaner, lab = TRUE, title = "Correlations between justice variables ordered by factors - CLEANER")
+range(cor_matrix_factors_cleaner)
+
+cor_matrix_context_cleaner <- cor(combined_waves_cleaner[, c("gen_1",
+                                             "gen_2",
+                                             "gen_3",
+                                             "gen_4",
+                                             "tax_1",
+                                             "tax_2",
+                                             "tax_3",
+                                             "tax_4",
+                                             "sub_1",
+                                             "sub_2",
+                                             "sub_3",
+                                             "sub_4"
+)])
+ggcorrplot(cor_matrix_context_cleaner, lab = TRUE, title = "Correlation between justice variables ordered by contexts - CLEANER")
+
+##--> around the exact same pattern is visible when I use the dataset with 30% less people who straight lined in at least one of the contexts
 
 #check fit measures 
 fitMeasures(cfa1)
@@ -420,10 +480,10 @@ modindices(cfa1) #checking modification indices; they indicate I should free the
 #adress latent correlations higher than 1 through restricting first loadings to be 1
 model2 <- '
 #latent regressions justice
-util =~ 1*justice_gen_1 + justice_tax_1 + justice_sub_1
-equal =~ 1*justice_gen_2 + justice_tax_2 + justice_sub_2
-suff =~ 1*justice_gen_3 + justice_tax_3 + justice_sub_3
-lim =~ 1*justice_gen_4 + justice_tax_4 + justice_sub_4
+util =~ 1*gen_1 + tax_1 + sub_1
+equal =~ 1*gen_2 + tax_2 + sub_2
+suff =~ 1*gen_3 + tax_3 + sub_3
+lim =~ 1*gen_4 + tax_4 + sub_4
 
 #set latent variance to 1 for identification
 util ~~ 1*util
@@ -437,32 +497,32 @@ equal ~~ suff + lim
 suff ~~ lim
 
 #estimate residual variances
-justice_gen_1 ~~ justice_gen_1
-justice_gen_2 ~~ justice_gen_2
-justice_gen_3 ~~ justice_gen_3
-justice_gen_4 ~~ justice_gen_4
-justice_tax_1 ~~ justice_tax_1
-justice_tax_2 ~~ justice_tax_2
-justice_tax_3 ~~ justice_tax_3
-justice_tax_4 ~~ justice_tax_4
-justice_sub_1 ~~ justice_sub_1
-justice_sub_2 ~~ justice_sub_2
-justice_sub_3 ~~ justice_sub_3
-justice_sub_4 ~~ justice_sub_4
+gen_1 ~~ gen_1
+gen_2 ~~ gen_2
+gen_3 ~~ gen_3
+gen_4 ~~ gen_4
+tax_1 ~~ tax_1
+tax_2 ~~ tax_2
+tax_3 ~~ tax_3
+tax_4 ~~ tax_4
+sub_1 ~~ sub_1
+sub_2 ~~ sub_2
+sub_3 ~~ sub_3
+sub_4 ~~ sub_4
 
 # measured intercepts
-justice_gen_1 ~ 1
-justice_gen_2 ~ 1
-justice_gen_3 ~ 1
-justice_gen_4 ~ 1
-justice_tax_1 ~ 1
-justice_tax_2 ~ 1
-justice_tax_3 ~ 1
-justice_tax_4 ~ 1
-justice_sub_1 ~ 1
-justice_sub_2 ~ 1
-justice_sub_3 ~ 1
-justice_sub_4 ~ 1
+gen_1 ~ 1
+gen_2 ~ 1
+gen_3 ~ 1
+gen_4 ~ 1
+tax_1 ~ 1
+tax_2 ~ 1
+tax_3 ~ 1
+tax_4 ~ 1
+sub_1 ~ 1
+sub_2 ~ 1
+sub_3 ~ 1
+sub_4 ~ 1
 '
 cfa2 <- lavaan(model2, data = combined_waves, estimator = "MLR") #I still get the error warning
 summary(cfa2, standardized = TRUE)
@@ -473,15 +533,15 @@ summary(cfa2, standardized = TRUE)
 
 model3 <- '
 #latent regressions justice
-util =~ justice_gen_1 + justice_tax_1 + justice_sub_1
-equal =~ justice_gen_2 + justice_tax_2 + justice_sub_2
-suff =~ justice_gen_3 + justice_tax_3 + justice_sub_3
-lim =~ justice_gen_4 + justice_tax_4 + justice_sub_4
+util =~ gen_1 + tax_1 + sub_1
+equal =~ gen_2 + tax_2 + sub_2
+suff =~ gen_3 + tax_3 + sub_3
+lim =~ gen_4 + tax_4 + sub_4
 
 #latent regressions context
-gen =~ justice_gen_1 + justice_gen_2 + justice_gen_3 + justice_gen_4
-tax =~ justice_tax_1 + justice_tax_2 + justice_tax_3 + justice_tax_4
-sub =~ justice_sub_1 + justice_sub_2 + justice_sub_3 + justice_sub_4
+gen =~ gen_1 + gen_2 + gen_3 + gen_4
+tax =~ tax_1 + tax_2 + tax_3 + tax_4
+sub =~ sub_1 + sub_2 + sub_3 + sub_4
 
 #set latent variances to 1 for identification
 util ~~ 1*util
@@ -500,32 +560,32 @@ equal ~~ suff + lim
 suff ~~ lim
 
 #estimate residual variances
-justice_gen_1 ~~ justice_gen_1
-justice_gen_2 ~~ justice_gen_2
-justice_gen_3 ~~ justice_gen_3
-justice_gen_4 ~~ justice_gen_4
-justice_tax_1 ~~ justice_tax_1
-justice_tax_2 ~~ justice_tax_2
-justice_tax_3 ~~ justice_tax_3
-justice_tax_4 ~~ justice_tax_4
-justice_sub_1 ~~ justice_sub_1
-justice_sub_2 ~~ justice_sub_2
-justice_sub_3 ~~ justice_sub_3
-justice_sub_4 ~~ justice_sub_4
+gen_1 ~~ gen_1
+gen_2 ~~ gen_2
+gen_3 ~~ gen_3
+gen_4 ~~ gen_4
+tax_1 ~~ tax_1
+tax_2 ~~ tax_2
+tax_3 ~~ tax_3
+tax_4 ~~ tax_4
+sub_1 ~~ sub_1
+sub_2 ~~ sub_2
+sub_3 ~~ sub_3
+sub_4 ~~ sub_4
 
 # measured intercepts
-justice_gen_1 ~ 1
-justice_gen_2 ~ 1
-justice_gen_3 ~ 1
-justice_gen_4 ~ 1
-justice_tax_1 ~ 1
-justice_tax_2 ~ 1
-justice_tax_3 ~ 1
-justice_tax_4 ~ 1
-justice_sub_1 ~ 1
-justice_sub_2 ~ 1
-justice_sub_3 ~ 1
-justice_sub_4 ~ 1
+gen_1 ~ 1
+gen_2 ~ 1
+gen_3 ~ 1
+gen_4 ~ 1
+tax_1 ~ 1
+tax_2 ~ 1
+tax_3 ~ 1
+tax_4 ~ 1
+sub_1 ~ 1
+sub_2 ~ 1
+sub_3 ~ 1
+sub_4 ~ 1
 '
 cfa3 <- lavaan(model3, data = combined_waves, estimator = "MLR")
 summary(cfa3, standardized = TRUE)
@@ -555,6 +615,19 @@ print(fitMeasures(cfa3_clean, "tli"))
 print(fitMeasures(cfa3_clean, "cfi"))
 print(fitMeasures(cfa3_clean, "srmr"))
 
+#fit the same model onto CLEANER dataset (with all straight-liners removed)
+cfa3_cleaner <- lavaan(model3, data = combined_waves_cleaner, estimator = "MLR")
+summary(cfa3_cleaner, standardized = TRUE)
+cfa3_cleaner_estimations <- inspect(cfa3_cleaner, "std.all")
+(cfa3_cleaner_estimations$lambda)^2*100
+print(fitMeasures(cfa3_cleaner, c("chisq", "df", "pvalue")))
+print(fitMeasures(cfa3_cleaner, c("rmsea",  "rmsea.ci.lower", "rmsea.ci.upper")))
+print(fitMeasures(cfa3_cleaner, "tli"))
+print(fitMeasures(cfa3_cleaner, "cfi"))
+print(fitMeasures(cfa3_cleaner, "srmr"))
+
+##comparing the cfa3 model with cfa3_clean and cfa3_cleaner, we see that there factorloadings are practically the same. 
+
 ######### with claude help ######### visualise the cfa3
 p <- semPaths(cfa3, whatLabels = "stand", intercepts = FALSE, DoNotPlot = TRUE)
 
@@ -565,18 +638,18 @@ obs_nodes     <- setdiff(1:19, c(justice_nodes, context_nodes))
 
 # Desired order of observed variables
 desired_order <- c(
-  "justice_gen_1",
-  "justice_tax_1",
-  "justice_sub_1",
-  "justice_gen_2",
-  "justice_tax_2",
-  "justice_sub_2",
-  "justice_gen_3",
-  "justice_tax_3",
-  "justice_sub_3",
-  "justice_gen_4",
-  "justice_tax_4",
-  "justice_sub_4"
+  "gen_1",
+  "tax_1",
+  "sub_1",
+  "gen_2",
+  "tax_2",
+  "sub_2",
+  "gen_3",
+  "tax_3",
+  "sub_3",
+  "gen_4",
+  "tax_4",
+  "sub_4"
 )
 # Get the lavaan names (the "attr names") for the obs_nodes
 obs_lavaan_names <- names(p$graphAttributes$Nodes$names)[obs_nodes]
@@ -621,8 +694,8 @@ compRelSEM(cfa3) # the McDonald's omegas are better here than on the cfa1 model.
 # first without the method factors: (it indicates bad fit)
 model4 <- '
 #latent regressions justice
-dis_insen =~ justice_gen_1 + justice_tax_1 + justice_sub_1
-dis_sen =~ justice_gen_2 + justice_tax_2 + justice_sub_2 + justice_gen_3 + justice_tax_3 + justice_sub_3 + justice_gen_4 + justice_tax_4 + justice_sub_4
+dis_insen =~ gen_1 + tax_1 + sub_1
+dis_sen =~ gen_2 + tax_2 + sub_2 + gen_3 + tax_3 + sub_3 + gen_4 + tax_4 + sub_4
 
 #set latent variances to 1 for identification
 dis_insen ~~ 1*dis_insen
@@ -634,32 +707,32 @@ dis_sen ~~ 1*dis_sen
 dis_insen ~~ dis_sen
 
 #estimate residual variances
-justice_gen_1 ~~ justice_gen_1
-justice_gen_2 ~~ justice_gen_2
-justice_gen_3 ~~ justice_gen_3
-justice_gen_4 ~~ justice_gen_4
-justice_tax_1 ~~ justice_tax_1
-justice_tax_2 ~~ justice_tax_2
-justice_tax_3 ~~ justice_tax_3
-justice_tax_4 ~~ justice_tax_4
-justice_sub_1 ~~ justice_sub_1
-justice_sub_2 ~~ justice_sub_2
-justice_sub_3 ~~ justice_sub_3
-justice_sub_4 ~~ justice_sub_4
+gen_1 ~~ gen_1
+gen_2 ~~ gen_2
+gen_3 ~~ gen_3
+gen_4 ~~ gen_4
+tax_1 ~~ tax_1
+tax_2 ~~ tax_2
+tax_3 ~~ tax_3
+tax_4 ~~ tax_4
+sub_1 ~~ sub_1
+sub_2 ~~ sub_2
+sub_3 ~~ sub_3
+sub_4 ~~ sub_4
 
 # measured intercepts
-justice_gen_1 ~ 1
-justice_gen_2 ~ 1
-justice_gen_3 ~ 1
-justice_gen_4 ~ 1
-justice_tax_1 ~ 1
-justice_tax_2 ~ 1
-justice_tax_3 ~ 1
-justice_tax_4 ~ 1
-justice_sub_1 ~ 1
-justice_sub_2 ~ 1
-justice_sub_3 ~ 1
-justice_sub_4 ~ 1
+gen_1 ~ 1
+gen_2 ~ 1
+gen_3 ~ 1
+gen_4 ~ 1
+tax_1 ~ 1
+tax_2 ~ 1
+tax_3 ~ 1
+tax_4 ~ 1
+sub_1 ~ 1
+sub_2 ~ 1
+sub_3 ~ 1
+sub_4 ~ 1
 '
 cfa4 <- lavaan(model4, data = combined_waves, estimator = "MLR")
 fitMeasures(cfa4)
@@ -672,13 +745,13 @@ print(fitMeasures(cfa4, "srmr")) #bad fit
 # implementing with method factors
 model5 <- '
 #latent regressions justice
-dis_insen =~ justice_gen_1 + justice_tax_1 + justice_sub_1
-dis_sen =~ justice_gen_2 + justice_tax_2 + justice_sub_2 + justice_gen_3 + justice_tax_3 + justice_sub_3 + justice_gen_4 + justice_tax_4 + justice_sub_4
+dis_insen =~ gen_1 + tax_1 + sub_1
+dis_sen =~ gen_2 + tax_2 + sub_2 + gen_3 + tax_3 + sub_3 + gen_4 + tax_4 + sub_4
 
 #latent regressions context
-gen =~ justice_gen_1 + justice_gen_2 + justice_gen_3 + justice_gen_4
-tax =~ justice_tax_1 + justice_tax_2 + justice_tax_3 + justice_tax_4
-sub =~ justice_sub_1 + justice_sub_2 + justice_sub_3 + justice_sub_4
+gen =~ gen_1 + gen_2 + gen_3 + gen_4
+tax =~ tax_1 + tax_2 + tax_3 + tax_4
+sub =~ sub_1 + sub_2 + sub_3 + sub_4
 
 #set latent variances to 1 for identification
 dis_insen ~~ 1*dis_insen
@@ -693,32 +766,32 @@ sub ~~ 1*sub
 dis_insen ~~ dis_sen
 
 #estimate residual variances
-justice_gen_1 ~~ justice_gen_1
-justice_gen_2 ~~ justice_gen_2
-justice_gen_3 ~~ justice_gen_3
-justice_gen_4 ~~ justice_gen_4
-justice_tax_1 ~~ justice_tax_1
-justice_tax_2 ~~ justice_tax_2
-justice_tax_3 ~~ justice_tax_3
-justice_tax_4 ~~ justice_tax_4
-justice_sub_1 ~~ justice_sub_1
-justice_sub_2 ~~ justice_sub_2
-justice_sub_3 ~~ justice_sub_3
-justice_sub_4 ~~ justice_sub_4
+gen_1 ~~ gen_1
+gen_2 ~~ gen_2
+gen_3 ~~ gen_3
+gen_4 ~~ gen_4
+tax_1 ~~ tax_1
+tax_2 ~~ tax_2
+tax_3 ~~ tax_3
+tax_4 ~~ tax_4
+sub_1 ~~ sub_1
+sub_2 ~~ sub_2
+sub_3 ~~ sub_3
+sub_4 ~~ sub_4
 
 # measured intercepts
-justice_gen_1 ~ 1
-justice_gen_2 ~ 1
-justice_gen_3 ~ 1
-justice_gen_4 ~ 1
-justice_tax_1 ~ 1
-justice_tax_2 ~ 1
-justice_tax_3 ~ 1
-justice_tax_4 ~ 1
-justice_sub_1 ~ 1
-justice_sub_2 ~ 1
-justice_sub_3 ~ 1
-justice_sub_4 ~ 1
+gen_1 ~ 1
+gen_2 ~ 1
+gen_3 ~ 1
+gen_4 ~ 1
+tax_1 ~ 1
+tax_2 ~ 1
+tax_3 ~ 1
+tax_4 ~ 1
+sub_1 ~ 1
+sub_2 ~ 1
+sub_3 ~ 1
+sub_4 ~ 1
 '
 cfa5 <- lavaan(model5, data = combined_waves, estimator = "MLR")
 fitMeasures(cfa5)
@@ -760,14 +833,14 @@ BIC(cfa5_clean) - BIC(cfa3_clean) # ---> delta BIC = 206
 #Exploratory analyses
 model6 <- '
 #latent regressions (justice)
-lim =~ justice_sub_4 + justice_tax_4
-suff =~ justice_sub_3 + justice_tax_3
-equal =~ justice_sub_2 + justice_tax_2
-util =~ justice_sub_1 + justice_tax_1
+lim =~ sub_4 + tax_4
+suff =~ sub_3 + tax_3
+equal =~ sub_2 + tax_2
+util =~ sub_1 + tax_1
 
 #latent regressions (contexts)
-sub =~ justice_sub_1 + justice_sub_2 + justice_sub_3 + justice_sub_4
-tax =~ justice_tax_1 + justice_tax_2 + justice_tax_3 + justice_tax_4 
+sub =~ sub_1 + sub_2 + sub_3 + sub_4
+tax =~ tax_1 + tax_2 + tax_3 + tax_4 
 
 #set latent variances to 1 for identification
 util ~~ 1*util
@@ -783,14 +856,14 @@ equal ~~ suff + lim
 suff ~~ lim
 
 #estimate residual variances
-justice_sub_1 ~~ justice_sub_1
-justice_sub_2 ~~ justice_sub_2
-justice_sub_3 ~~ justice_sub_3
-justice_sub_4 ~~ justice_sub_4
-justice_tax_1 ~~ justice_tax_1
-justice_tax_2 ~~ justice_tax_2
-justice_tax_3 ~~ justice_tax_3
-justice_tax_4 ~~ justice_tax_4
+sub_1 ~~ sub_1
+sub_2 ~~ sub_2
+sub_3 ~~ sub_3
+sub_4 ~~ sub_4
+tax_1 ~~ tax_1
+tax_2 ~~ tax_2
+tax_3 ~~ tax_3
+tax_4 ~~ tax_4
 '
 cfa6 <- lavaan(model6, data = combined_waves, estimator = "MLR") 
 summary(cfa6)
